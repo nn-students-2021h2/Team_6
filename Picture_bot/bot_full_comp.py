@@ -4,71 +4,26 @@ import numpy as np
 from transliterate import translit
 import asyncio
 import logging
-from aiogram import Bot, Dispatcher, executor, types
-from aiogram.utils.exceptions import BotBlocked
-from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram import Bot, Dispatcher, executor
+#from aiogram.utils.exceptions import BotBlocked
 import aiogram.utils.markdown as fmt
-import config
 from requests import get
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
+from confidence_info.your_config import TOKEN
+from confidence_info.your_dir import main_img_dir
+from interface.all_states import *
+from interface.markups import *
 
-main_img_dir = "C:/Users/tramp/source/repos/PythonApplication1/PythonApplication1/photos/"
 
-bot = Bot(token = config.TOKEN)
+bot = Bot(token = TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 logging.basicConfig(level = logging.INFO)
 
 dp.middleware.setup(LoggingMiddleware())
 
-class StartManagment(StatesGroup):
-    ice_crem_not_done = State()
-    ice_crem_done = State()
-
-class ImageDownload(StatesGroup):
-    download_not_complete = State()
-    prepare_downloading = State()
-    download_done = State()
-
-class Filters(StatesGroup):
-    color_range_working = State()
-    gamma_working = State()
-
 tokens = {"negative": False, "gamma": False, "gray": False, "mean_shift": False,
         "color_range": False, "flag": 0}
-
-start_markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard = True)
-start_buttons = ["🍧 Хочу мороженку", "🎨 Мне нужно обработать изображение"]
-start_markup.add(*start_buttons)
-
-filters_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-button_sourse = types.KeyboardButton("Исходник")
-button_negative = types.KeyboardButton("Негатив")
-button_gamma = types.KeyboardButton("Гамма Фильтр")
-button_gray = types.KeyboardButton("Черно-белый")
-button_shift = types.KeyboardButton("Средний сдвиг")
-button_color_range = types.KeyboardButton("Цветовой диапазон")
-button_tired = types.KeyboardButton("Я устал")
-filters_markup.add(button_sourse, button_negative, button_gamma, button_gray,
-                    button_shift, button_color_range, button_tired)
-
-baby_help_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-button_dark = types.KeyboardButton("0.5 Немного затемнить")
-button_light = types.KeyboardButton("1.5 Немного осветлить")
-button_enough = types.KeyboardButton("Перестань (reset brightnes)")
-baby_help_markup.add(button_dark, button_light)
-baby_enough_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-baby_enough_markup.add(button_dark, button_light, button_enough)
-
-colors_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-button_green = types.KeyboardButton("Зелёный")
-button_red = types.KeyboardButton("Красный")
-button_orange = types.KeyboardButton("Оранжевый")
-button_yellow = types.KeyboardButton("Жёлтый")
-button_lightblue = types.KeyboardButton("Голубой")
-button_blue = types.KeyboardButton("Синий")
-button_purple = types.KeyboardButton("Фиолетовый")
-colors_markup.add(button_green, button_red, button_yellow, button_orange, button_lightblue, button_blue, button_purple)
 
 # Вспомогательные функции
 async def send_error_to_user(message, error_type):
@@ -125,6 +80,11 @@ async def help_message(message: types.Message):
 @dp.message_handler(commands = "filters", state = "*")
 async def get_filters_keyboard(message: types.Message):
     await send_img_text_sticker(message, None, "Ну понятно, лишь бы поработать", "tired", reply_markup = filters_markup)
+
+#@dp.message_handler(commands="block", state = "*")
+#async def cmd_block(message: types.Message):
+#    await asyncio.sleep(10.0)  # Здоровый сон на 10 секунд
+#    await message.reply("Вы заблокированы")
 
 @dp.message_handler()
 async def echo_message(message: types.Message):
@@ -392,24 +352,19 @@ async def image_processing(message: types.Message):
     await send_img_text_sticker(message, None, "Бедненький, давай я тебя помогу тебе расслабиться ...", "relax", start_markup)
     await StartManagment.ice_crem_not_done.set()
 
-@dp.message_handler(commands="block")
-async def cmd_block(message: types.Message):
-    await asyncio.sleep(10.0)  # Здоровый сон на 10 секунд
-    await message.reply("Вы заблокированы")
-
 @dp.message_handler(content_types = [types.ContentType.ANIMATION])
 async def echo_document(message: types.Message):
     await message.reply_animation(message.animation.file_id)
 
-@dp.errors_handler(exception=BotBlocked)
-async def error_bot_blocked(update: types.Update, exception: BotBlocked):
-    # Update: объект события от Telegram. Exception: объект исключения
-    # Здесь можно как-то обработать блокировку, например, удалить пользователя из БД
-    print(f"Меня заблокировал пользователь!\nСообщение: {update}\nОшибка: {exception}")
+#@dp.errors_handler(exception=BotBlocked)
+#async def error_bot_blocked(update: types.Update, exception: BotBlocked):
+#    # Update: объект события от Telegram. Exception: объект исключения
+#    # Здесь можно как-то обработать блокировку, например, удалить пользователя из БД
+#    print(f"Меня заблокировал пользователь!\nСообщение: {update}\nОшибка: {exception}")
 
-    # Такой хэндлер должен всегда возвращать True,
-    # если дальнейшая обработка не требуется.
-    return True
+#    # Такой хэндлер должен всегда возвращать True,
+#    # если дальнейшая обработка не требуется.
+#    return True
 
 #@dp.message_handler(commands = "answer")
 #async def cmd_answer(message: types.Message):

@@ -27,8 +27,7 @@ tokens = {"negative": False, "gamma": False, "gray": False, "mean_shift": False,
 
 # Вспомогательные функции
 async def send_error_to_user(message, error_type):
-    bot.send_message(message.chat.id, error_type, parse_mode='html')
-    bot.send_sticker(message.chat.id, open('Stickers/error.webp', 'rb'))
+    await send_img_text_sticker(message, None, error_type, "error", None)
 
 async def send_img_text_sticker(message, img_path, text, sticker, reply_markup = None):
     if img_path is not None:
@@ -52,46 +51,32 @@ def create_save_path(message, images_type):
 @dp.message_handler(commands = "start", state = "*")
 async def start_message(message: types.Message):
     me = await bot.get_me()
-    await message.answer(
-    f"{fmt.hide_link('https://www.youtube.com/watch?v=l6LC7B00fWw')}Добро пожаловать {message.from_user.first_name}!\n"
-    f"Я - <b>{me.first_name}</b>, Всемогущее Всесущее Зло!\n или просто бот созданный обработать"
-    f"твое изображение", parse_mode = types.ParseMode.HTML, reply_markup = start_markup)
-    await bot.send_sticker(message.chat.id, open('Stickers/hello.webp', 'rb'))
+    await send_img_text_sticker(message, None, f"{fmt.hide_link('https://www.youtube.com/watch?v=l6LC7B00fWw')}Добро пожаловать {message.from_user.first_name}!\n"
+                                f"Я - <b>{me.first_name}</b>, Всемогущее Всесущее Зло!\n или просто бот созданный обработать", "hello", reply_markup = start_markup)
     await StartManagment.ice_crem_not_done.set()
 
 @dp.message_handler(commands = "help", state = "*")
 async def help_message(message: types.Message):
     me = await bot.get_me()
-    await message.answer(
-    f"Давай-ка я подскажу тебе по поводу фильтров..\n"
-    f"<b>Негатив</b> - самый простой, значения каналов цвета меняются на противоположные\n"
-    f"<b>Гамма-фильтр</b> - чуть посложнее, в зависимости от коэффициента гамма меняется интенсивность(яркость) изображения\
-    посветлее, потемнее, всё такое..\n"
-    f"<b>Чёрно-белый</b> - ну туть всё понятно, находим интенсивность картинки и скалируем ее в оттенках от черного до белого цветов\n"
-    f"<b>Средний сдвиг</b> - скажу по-научному, он заменяет каждый пиксель средним значением пикселей в своей окрестности матрицы радиуса r 🧐\
-    в общем гладит фото\n"
-    f"Ты еще не уснул? Оу, нет.. Ладно тогда продолжим\n"
-    f"<b>Цветовой диапазон</b> - да тут легко, эта штука выделяет диапазон цветов, который ты прикажешь\
-    и на картинке красит его в белый. Преобразовывем картинку в формат HSV (ну ты знаешь),\
-    создаём HSV массивы от минимума нашего оттенка цвета до максимума, ну а дальше всё понятно,\
-    это простейшая реализация, многого от нее не ожидай 🙄\n", parse_mode = types.ParseMode.HTML) #, reply_markup = start_markup
-    await bot.send_sticker(message.chat.id, open('Stickers/stupid.webp', 'rb'))
+    await send_img_text_sticker(message, None, 
+                                f"Давай-ка я подскажу тебе по поводу фильтров..\n"
+                                f"<b>Негатив</b> - самый простой, значения каналов цвета меняются на противоположные\n"
+                                f"<b>Гамма-фильтр</b> - чуть посложнее, в зависимости от коэффициента гамма меняется интенсивность(яркость) изображения\
+                                посветлее, потемнее, всё такое..\n"
+                                f"<b>Чёрно-белый</b> - ну туть всё понятно, находим интенсивность картинки и скалируем ее в оттенках от черного до белого цветов\n"
+                                f"<b>Средний сдвиг</b> - скажу по-научному, он заменяет каждый пиксель средним значением пикселей в своей окрестности матрицы радиуса r 🧐\в общем гладит фото\n"
+                                f"Ты еще не уснул? Оу, нет.. Ладно тогда продолжим\n"
+                                f"<b>Цветовой диапазон</b> - да тут легко, эта штука выделяет диапазон цветов, который ты прикажешь\
+                                и на картинке красит его в белый. Преобразовывем картинку в формат HSV (ну ты знаешь),\
+                                создаём HSV массивы от минимума нашего оттенка цвета до максимума, ну а дальше всё понятно,\
+                                это простейшая реализация, многого от нее не ожидай 🙄\n", "stupid", reply_markup = start_markup)
+    await StartManagment.ice_crem_not_done.set()
 
-@dp.message_handler(commands = "filters", state = "*")
-async def get_filters_keyboard(message: types.Message):
-    await send_img_text_sticker(message, None, "Ну понятно, лишь бы поработать", "tired", reply_markup = filters_markup)
 
 #@dp.message_handler(commands="block", state = "*")
 #async def cmd_block(message: types.Message):
 #    await asyncio.sleep(10.0)  # Здоровый сон на 10 секунд
 #    await message.reply("Вы заблокированы")
-
-@dp.message_handler()
-async def echo_message(message: types.Message):
-    await send_img_text_sticker(message, None,
-    f"Я не знаю что ответить 😢\n"
-    f"Доступные команды: \n/start - полная перезагрузка \n/filters - получить клавиатуру фильтров\n"
-    f"/help - информация о достурных фильтрах", "noanswer", start_markup)
 
 @dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку", state = StartManagment.ice_crem_not_done)
 async def wanted_icecrem_first_time(message: types.Message):
@@ -108,43 +93,33 @@ async def wanted_icecrem_other_time(message: types.Message):
 @dp.message_handler(lambda message: message.text == "🎨 Мне нужно обработать изображение", state = StartManagment.states)
 async def image_processing(message: types.Message):
     #await bot.send_message(message.chat.id, message.text, types.ReplyKeyboardRemove())
-    markup_for_answer = types.InlineKeyboardMarkup(row_width = 2)
-    button_yes = types.InlineKeyboardButton(text = "Да", callback_data = "years_old_18")
-    button_no = types.InlineKeyboardButton(text = "Нет", callback_data = "years_old_not_18")
-    markup_for_answer.add(button_yes, button_no)
     await send_img_text_sticker(message, None, 'Тебе точно есть 18 ?', "18", markup_for_answer)
     await ImageDownload.download_not_complete.set()
 
 @dp.message_handler(state = ImageDownload.download_not_complete)
 async def echo_message(message: types.Message):
-    markup_for_answer = types.InlineKeyboardMarkup(row_width = 2)
-    button_yes = types.InlineKeyboardButton(text = "Да", callback_data = "years_old_18")
-    button_no = types.InlineKeyboardButton(text = "Нет", callback_data = "years_old_not_18")
-    markup_for_answer.add(button_yes, button_no)
     await send_img_text_sticker(message, None, "Чего я там не видела, ответь на вопрос, малыш, тебе есть 18 ?",
                                  "be", markup_for_answer)
 
 @dp.callback_query_handler(text = "years_old_18", state = "*")
 async def send_random_value(call: types.CallbackQuery):
-    await call.message.answer("Кидай свою картинку...", reply_markup = types.ReplyKeyboardRemove())
-    await bot.send_sticker(call.message.chat.id, open('Stickers/giveaphoto.webp', 'rb'))
+    await send_img_text_sticker(message, "Кидай свою картинку...", "giveaphoto", types.ReplyKeyboardRemove())
     await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Тебе точно есть 18 ?',
                 reply_markup=None)
     await ImageDownload.prepare_downloading.set()
     asyncio.sleep(4)
     await bot.answer_callback_query(callback_query_id=call.id, show_alert=False,
-                              text = "Я уже заждалась твоего изображения, котик")
+                              text = "Я уже заждалась твоего изображения")
 
 @dp.callback_query_handler(text = "years_old_not_18", state = "*")
 async def send_random_value(call: types.CallbackQuery):
-    await call.message.answer("Ну ничего, со всеми бывало, загружай изображение!", reply_markup = types.ReplyKeyboardRemove())
-    await bot.send_sticker(call.message.chat.id, open('Stickers/giveaphoto.webp', 'rb'))
+    await send_img_text_sticker(message, "Ну ничего, со всеми бывало, загружай изображение!", "giveaphoto", types.ReplyKeyboardRemove())
     await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Тебе точно есть 18 ?',
                 reply_markup=None)
     await ImageDownload.prepare_downloading.set()
     asyncio.sleep(4)
     await bot.answer_callback_query(callback_query_id=call.id, show_alert=False,
-                              text = "Я уже заждалась твоего изображения, котик")
+                              text = "Я уже заждалась твоего изображения")
 
 @dp.message_handler(content_types = ["photo"], state = StartManagment.states)
 async def download_photo(message: types.Message):
@@ -188,7 +163,7 @@ async def get_source(message: types.Message):
         img_path = create_save_path(message, "source")
         await send_img_text_sticker(message, img_path, "С такого ракурса стало только хуже XD", "haha", None)
     except:
-        await send_error_to_user(message, "Ой, а я не видела твоих фоточек еще, семпай...")
+        await send_error_to_user(message, "Ой, а я не видела твоих фоточек еще...")
 
 @dp.message_handler(lambda message: message.text == "Негатив", state = ImageDownload.download_done)
 async def filter_negative(message: types.Message):
@@ -212,7 +187,7 @@ async def filter_gray_scale(message: types.Message):
         img = cv2.imread(src_img_path)
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         cv2.imwrite(img_path, img_gray)
-        await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood")
+        await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
         tokens['gray'] = True
     else:
         img_path = create_save_path(message, "gray")
@@ -317,7 +292,7 @@ async def Gamma_Function(message):
         except:
             tokens["flag"] += 1
             if tokens["flag"] == 1:
-                await send_img_text_sticker(message, None, "Гамма это просто число! Плохой мальчик!", "kus", baby_help_markup)
+                await send_img_text_sticker(message, None, "Гамма это просто число!", "kus", baby_help_markup)
             if tokens["flag"] == 2:
                 await send_img_text_sticker(message, None, "Издеваешься, да?", "cry", filters_markup)
                 await ImageDownload.download_done.set()
@@ -378,7 +353,7 @@ async def echo_document(message: types.Message):
 async def echo_message(message):
     await send_img_text_sticker(message, None,
     f"Я не знаю что ответить 😢\n"
-    f"Доступные команды: \n/start - полная перезагрузка \n/filters - получить клавиатуру фильтров\n"
+    f"Доступные команды: \n/start - полная перезагрузка \n"
     f"/help - информация о достурных фильтрах", "noanswer", start_markup)
 
 if __name__ == "__main__":

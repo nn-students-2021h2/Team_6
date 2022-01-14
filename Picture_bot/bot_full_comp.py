@@ -82,7 +82,7 @@ async def help_message(message: types.Message):
 async def wanted_icecrem_first_time(message: types.Message):
     await send_img_text_sticker(message, "https://sc01.alicdn.com/kf/UTB8CFH3C3QydeJk43PUq6AyQpXah/200128796/UTB8CFH3C3QydeJk43PUq6AyQpXah.jpg",
                                 "Упс, я уже все съела", "hehe", start_markup)
-    state = dp.current_state(user = message.from_user.id)
+    await send_img_text_sticker(message, None, f"{message.from_user.id}", "nono", None)
     await state.set_state(StartManagment.ice_crem_done)
 
 @dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку", state = StartManagment.ice_crem_done)
@@ -103,7 +103,7 @@ async def echo_message(message: types.Message):
 
 @dp.callback_query_handler(text = "years_old_18", state = "*")
 async def send_random_value(call: types.CallbackQuery):
-    await send_img_text_sticker(message, "Кидай свою картинку...", "giveaphoto", types.ReplyKeyboardRemove())
+    await send_img_text_sticker(call.message, None, "Кидай свою картинку...", "giveaphoto", types.ReplyKeyboardRemove())
     await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Тебе точно есть 18 ?',
                 reply_markup=None)
     await ImageDownload.prepare_downloading.set()
@@ -113,7 +113,7 @@ async def send_random_value(call: types.CallbackQuery):
 
 @dp.callback_query_handler(text = "years_old_not_18", state = "*")
 async def send_random_value(call: types.CallbackQuery):
-    await send_img_text_sticker(message, "Ну ничего, со всеми бывало, загружай изображение!", "giveaphoto", types.ReplyKeyboardRemove())
+    await send_img_text_sticker(call.message, None, "Ну ничего, со всеми бывало, загружай изображение!", "giveaphoto", types.ReplyKeyboardRemove())
     await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Тебе точно есть 18 ?',
                 reply_markup=None)
     await ImageDownload.prepare_downloading.set()
@@ -141,6 +141,7 @@ async def download_photo(message: types.Message):
 async def download_photo(message: types.Message):
     try:
         user_images_dir = os.path.join(main_img_dir, translit(message.from_user.first_name, language_code='ru', reversed=True))
+        #user_images_dir = os.path.join(main_img_dir, str(message.from_user.id))
         src = create_save_path(message, "source")
         try:
             await message.photo[-1].download(destination = src)

@@ -343,14 +343,6 @@ async def echo_document(message: types.Message):
 #    # если дальнейшая обработка не требуется.
 #    return True
 
-#@dp.message_handler(commands = "answer")
-#async def cmd_answer(message: types.Message):
-#    await message.answer("Это простой ответ")
-
-#@dp.message_handler(commands="reply")
-#async def cmd_reply(message: types.Message):
-#    await message.reply('Это ответ с "ответом"')
-
 @dp.message_handler(state = "*")
 async def echo_message(message):
     await send_img_text_sticker(message, None,

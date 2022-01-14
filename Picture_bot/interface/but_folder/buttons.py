@@ -1,6 +1,7 @@
 from aiogram import types
 
 
+# KeyboardButton
 # for start menu
 start_buttons = ["🍧 Хочу мороженку", "🎨 Мне нужно обработать изображение"]
 
@@ -26,3 +27,8 @@ button_yellow = types.KeyboardButton("Жёлтый")
 button_lightblue = types.KeyboardButton("Голубой")
 button_blue = types.KeyboardButton("Синий")
 button_purple = types.KeyboardButton("Фиолетовый")
+
+# InlineKeyboardButton
+# 18 years old menu buttons
+button_yes = types.InlineKeyboardButton(text = "Да", callback_data = "years_old_18")
+button_no = types.InlineKeyboardButton(text = "Нет", callback_data = "years_old_not_18")

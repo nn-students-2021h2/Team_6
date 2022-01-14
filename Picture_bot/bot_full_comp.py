@@ -22,6 +22,7 @@ logging.basicConfig(level = logging.INFO)
 
 dp.middleware.setup(LoggingMiddleware())
 
+user_images_dir = ''
 tokens = {"negative": False, "gamma": False, "gray": False, "mean_shift": False,
         "color_range": False, "flag": 0}
 
@@ -43,14 +44,16 @@ async def send_img_text_sticker(message, img_path, text, sticker, reply_markup =
     return send
 
 def create_save_path(message, images_type):
-    user_images_dir = os.path.join(main_img_dir, translit(message.from_user.first_name, language_code='ru', reversed=True))
     src = os.path.join(user_images_dir, images_type + "_" + translit(message.from_user.first_name, language_code='ru', reversed=True) + ".jpg")
     return src
 
 
 @dp.message_handler(commands = "start", state = "*")
-async def start_message(message: types.Message):
+async def start_message(message: types.Message): 
+    global user_images_dir
+    user_images_dir = os.path.join(main_img_dir, str(message.from_user.id))
     me = await bot.get_me()
+
     await send_img_text_sticker(message, None, f"{fmt.hide_link('https://www.youtube.com/watch?v=l6LC7B00fWw')}Добро пожаловать {message.from_user.first_name}!\n"
                                 f"Я - <b>{me.first_name}</b>, Всемогущее Всесущее Зло!\n или просто бот созданный обработать", "hello", reply_markup = start_markup)
     await StartManagment.ice_crem_not_done.set()
@@ -140,8 +143,6 @@ async def download_photo(message: types.Message):
 @dp.message_handler(content_types = ["photo"], state = ImageDownload.prepare_downloading)
 async def download_photo(message: types.Message):
     try:
-        user_images_dir = os.path.join(main_img_dir, translit(message.from_user.first_name, language_code='ru', reversed=True))
-        #user_images_dir = os.path.join(main_img_dir, str(message.from_user.id))
         src = create_save_path(message, "source")
         try:
             await message.photo[-1].download(destination = src)

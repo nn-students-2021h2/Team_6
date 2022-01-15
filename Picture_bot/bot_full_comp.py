@@ -14,6 +14,7 @@ from confidence_info.your_config import TOKEN
 from confidence_info.your_dir import main_img_dir
 from interface.all_states import *
 from interface.markups import *
+from exceptions import *
 
 
 bot = Bot(token = TOKEN)
@@ -54,8 +55,9 @@ async def start_message(message: types.Message):
     user_images_dir = os.path.join(main_img_dir, str(message.from_user.id))
     me = await bot.get_me()
 
-    await send_img_text_sticker(message, None, f"{fmt.hide_link('https://www.youtube.com/watch?v=l6LC7B00fWw')}Добро пожаловать {message.from_user.first_name}!\n"
-                                f"Я - <b>{me.first_name}</b>, Всемогущее Всесущее Зло!\n или просто бот созданный обработать", "hello", reply_markup = start_markup)
+    await send_img_text_sticker(message, None, f"Добро пожаловать {message.from_user.first_name}!\n"
+                                f"Я - <b>{me.first_name}</b>, Всемогущее Всесущее Зло!\n или просто бот созданный обработать твоё изображение",
+                                "hello", reply_markup = start_markup)
     await StartManagment.ice_crem_not_done.set()
 
 @dp.message_handler(commands = "help", state = "*")
@@ -128,10 +130,6 @@ async def send_random_value(call: types.CallbackQuery):
 async def download_photo(message: types.Message):
     await send_img_text_sticker(message, None, "Ты слишком торопишься, я не такая", "nono", None)
 
-@dp.message_handler(content_types = ["photo"], state = ImageDownload.download_done)
-async def download_photo(message: types.Message):
-    await send_img_text_sticker(message, None, "Я не обрабатываю случаное изображение, зайка", "dontrush", start_markup)
-
 @dp.message_handler(content_types = ["photo"], state = ImageDownload.download_not_complete)
 async def download_photo(message: types.Message):
     await send_img_text_sticker(message, None, "Ты слишком торопишься, я не такая", "nono", None)
@@ -202,45 +200,49 @@ async def colors(message: types.Message):
 
 @dp.message_handler(state = Filters.color_range_working)
 async def Color_Range(message: types.Message):
-    # try:
+    try:
         src_img_path = create_save_path(message, "source")
         img_path = create_save_path(message, "color_range")
         img = cv2.imread(src_img_path)
-        img = cv2.bilateralFilter(img,9,75,75)
+        #img = cv2.bilateralFilter(img,9,151,151)
+        for i in range(2):
+            img = cv2.bilateralFilter(img,9,75,75)
         if message.text == 'Зелёный' or message.text == 'зелёный' or message.text == 'зеленый' \
                                         or message.text == 'Зеленый' or message.text == 'green':
-            hsv_min = np.array((36, 25, 25), np.uint8)
+            hsv_min = np.array((30, 100, 20), np.uint8) #35 78
             hsv_max = np.array((85, 255, 255), np.uint8)
         elif message.text == 'Красный' or message.text == 'красный' or message.text == 'red':
-            hsv_min = np.array((0, 25, 25), np.uint8)
-            hsv_max = np.array((15, 255, 255), np.uint8)
+            hsv_min = np.array((160, 100, 20), np.uint8)
+            hsv_max = np.array((180, 255, 255), np.uint8)
         elif message.text == 'Оранжевый' or message.text == 'оранжевый' or message.text == 'orange':
-            hsv_min = np.array((13, 25, 25), np.uint8)
-            hsv_max = np.array((23, 255, 255), np.uint8)
+            hsv_min = np.array((10, 100, 20), np.uint8)
+            hsv_max = np.array((25, 255, 255), np.uint8)
         elif message.text == 'Жёлтый' or message.text == 'жёлтый' or message.text == 'желтый' \
                                      or message.text == 'Желтый' or message.text == 'yellow':
-            hsv_min = np.array((20, 25, 25), np.uint8)
+            hsv_min = np.array((20, 100, 20), np.uint8)
             hsv_max = np.array((40, 255, 255), np.uint8)
         elif message.text == 'Голубой' or message.text == 'голубой' or message.text == 'blue':
-            hsv_min = np.array((83, 25, 25), np.uint8)
-            hsv_max = np.array((103, 255, 255), np.uint8)
+            hsv_min = np.array((80, 100, 20), np.uint8)
+            hsv_max = np.array((110, 255, 255), np.uint8)
         elif message.text == 'Синий' or message.text == 'синий' or message.text == 'light blue':
-            hsv_min = np.array((103, 25, 25), np.uint8)
-            hsv_max = np.array((133, 255, 255), np.uint8)
+            hsv_min = np.array((100, 100, 20), np.uint8)
+            hsv_max = np.array((135, 255, 255), np.uint8)
         elif message.text == 'Фиолетовый' or message.text == 'фиолетовый' or message.text == 'purple':
-            hsv_min = np.array((135, 0, 0), np.uint8)
-            hsv_max = np.array((155, 255, 255), np.uint8)
+            hsv_min = np.array((135, 100, 20), np.uint8)
+            hsv_max = np.array((160, 255, 255), np.uint8)
         else:
-            await send_img_text_sticker(message, None, "Сказала же, цвета радуги \n Каждый охотник желает знать..", "kus", None)
+            raise ColorEnterError
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         img_hsv = cv2.inRange(hsv, hsv_min, hsv_max)
         cv2.imwrite(img_path, img_hsv)
         tokens['color_range'] = True
         await send_img_text_sticker(message, img_path, "Ничего себе как я могу", "beautiful", filters_markup)
         await ImageDownload.download_done.set()
-    # except:
-    #     await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
-    #     ImageDownload.download_done.set()
+    except ColorEnterError:
+        await send_img_text_sticker(message, None, "Сказала же, цвета радуги \n Каждый охотник желает знать..", "kus", None)
+    except:
+         await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
+         ImageDownload.download_done.set()
 
 @dp.message_handler(lambda message: message.text == "Гамма Фильтр", state = ImageDownload.download_done)
 async def filter_gamma(message: types.Message):
@@ -316,7 +318,7 @@ async def filter_meanshift(message: types.Message):
         src_img_path = create_save_path(message, "source")
         img_path = create_save_path(message, "mean_shift")
         img = cv2.imread(src_img_path)
-        image_shifted = cv2.pyrMeanShiftFiltering(img, 10, 25)
+        image_shifted = cv2.pyrMeanShiftFiltering(img, 15, 50, 1)
         cv2.imwrite(img_path, image_shifted)
         await send_img_text_sticker(message, img_path, "Ах, как же я хорошо поработала", "wow", None)
         tokens['mean_shift'] = True
@@ -332,16 +334,6 @@ async def image_processing(message: types.Message):
 @dp.message_handler(content_types = [types.ContentType.ANIMATION])
 async def echo_document(message: types.Message):
     await message.reply_animation(message.animation.file_id)
-
-#@dp.errors_handler(exception=BotBlocked)
-#async def error_bot_blocked(update: types.Update, exception: BotBlocked):
-#    # Update: объект события от Telegram. Exception: объект исключения
-#    # Здесь можно как-то обработать блокировку, например, удалить пользователя из БД
-#    print(f"Меня заблокировал пользователь!\nСообщение: {update}\nОшибка: {exception}")
-
-#    # Такой хэндлер должен всегда возвращать True,
-#    # если дальнейшая обработка не требуется.
-#    return True
 
 @dp.message_handler(state = "*")
 async def echo_message(message):

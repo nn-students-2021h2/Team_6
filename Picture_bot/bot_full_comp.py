@@ -138,7 +138,7 @@ async def download_photo(message: types.Message):
 async def download_photo(message: types.Message):
     await send_img_text_sticker(message, None, "И зачем мне это сейчас ?", "stupid", None)
 
-@dp.message_handler(content_types = ["photo"], state = ImageDownload.prepare_downloading)
+@dp.message_handler(content_types = ["photo"], state = ImageDownload.states)
 async def download_photo(message: types.Message):
     try:
         src = create_save_path(message, "source")

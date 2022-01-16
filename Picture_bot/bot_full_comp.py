@@ -16,7 +16,6 @@ from interface.all_states import *
 from interface.markups import *
 from exceptions import *
 
-
 bot = Bot(token = TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 logging.basicConfig(level = logging.INFO)
@@ -25,7 +24,7 @@ dp.middleware.setup(LoggingMiddleware())
 
 user_images_dir = ''
 tokens = {"negative": False, "gamma": False, "gray": False, "mean_shift": False,
-        "color_range": False, "flag": 0}
+        "color_range": False, "pixel": False, "flag": 0}
 
 # Вспомогательные функции
 async def send_error_to_user(message, error_type):
@@ -154,6 +153,7 @@ async def download_photo(message: types.Message):
         tokens["gray"] = False
         tokens["gamma"] = False
         tokens["color_range"] = False
+        tokens["pixel"] = False
     except:
         await send_error_to_user(message, "У меня не получилось загрузить изображение, ты был слишком резок.. \n Попробуй другое 😟")
 
@@ -325,6 +325,34 @@ async def filter_meanshift(message: types.Message):
     else:
         img_path = create_save_path(message, "mean_shift")
         await send_img_text_sticker(message, img_path, "Ты уже использовал этот фильтр, имей совесть! Я тут не без дела сижу ...", "tired")
+
+@dp.message_handler(lambda message: message.text == "Пикселизация", state = ImageDownload.download_done)
+async def filter_pixel(message: types.Message):
+    if tokens.get('pixel') == False:
+        src_img_path = create_save_path(message, "source")
+        img_path = create_save_path(message, "pixel")
+        img = cv2.imread(src_img_path)
+        orig_height, orig_width = img.shape[:2]
+        small_height, small_width = orig_height // 16, orig_width // 16
+        img_resized = cv2.resize(img, (small_width, small_height), interpolation = cv2.INTER_LINEAR)
+        img_resized = cv2.resize(img_resized, (orig_width, orig_height), interpolation = cv2.INTER_NEAREST)
+
+        data = img_resized.reshape((-1,3))
+        data = np.float32(data)
+        criteria = (cv2.TERM_CRITERIA_EPS +
+                    cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+        flags = cv2.KMEANS_RANDOM_CENTERS
+        compactness, labels, centers = cv2.kmeans(data, 20, None, criteria, 10, flags)
+        centers = np.uint8(centers)
+        res = centers[labels.flatten()]
+        img_resized = res.reshape((img_resized.shape))
+
+        cv2.imwrite(img_path, img_resized)
+        await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
+        tokens['pixel'] = True
+    else:
+        img_path = create_save_path(message, "pixel")
+        await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?", "iamnotarobot")
 
 @dp.message_handler(lambda message: message.text == "Я устал", state = ImageDownload.download_done)
 async def image_processing(message: types.Message):

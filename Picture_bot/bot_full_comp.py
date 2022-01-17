@@ -57,7 +57,7 @@ async def start_message(message: types.Message):
     await send_img_text_sticker(message, None, f"Добро пожаловать {message.from_user.first_name}!\n"
                                 f"Я - <b>{me.first_name}</b>, Всемогущее Всесущее Зло!\n или просто бот созданный обработать твоё изображение",
                                 "hello", reply_markup = start_markup)
-    await StartManagment.ice_crem_not_done.set()
+    await StartManagment.ice_cream_not_done.set()
 
 @dp.message_handler(commands = "help", state = "*")
 async def help_message(message: types.Message):
@@ -74,7 +74,7 @@ async def help_message(message: types.Message):
                                 и на картинке красит его в белый. Преобразовывем картинку в формат HSV (ну ты знаешь),\
                                 создаём HSV массивы от минимума нашего оттенка цвета до максимума, ну а дальше всё понятно,\
                                 это простейшая реализация, многого от нее не ожидай 🙄\n", "stupid", reply_markup = start_markup)
-    await StartManagment.ice_crem_not_done.set()
+    await StartManagment.ice_cream_not_done.set()
 
 
 #@dp.message_handler(commands="block", state = "*")
@@ -82,15 +82,15 @@ async def help_message(message: types.Message):
 #    await asyncio.sleep(10.0)  # Здоровый сон на 10 секунд
 #    await message.reply("Вы заблокированы")
 
-@dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку", state = StartManagment.ice_crem_not_done)
-async def wanted_icecrem_first_time(message: types.Message):
+@dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку", state = StartManagment.ice_cream_not_done)
+async def wanted_icecream_first_time(message: types.Message):
     await send_img_text_sticker(message, "https://sc01.alicdn.com/kf/UTB8CFH3C3QydeJk43PUq6AyQpXah/200128796/UTB8CFH3C3QydeJk43PUq6AyQpXah.jpg",
                                 "Упс, я уже все съела", "hehe", start_markup)
     await send_img_text_sticker(message, None, f"{message.from_user.id}", "nono", None)
-    await state.set_state(StartManagment.ice_crem_done)
+    await state.set_state(StartManagment.ice_cream_done)
 
-@dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку", state = StartManagment.ice_crem_done)
-async def wanted_icecrem_other_time(message: types.Message):
+@dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку", state = StartManagment.ice_cream_done)
+async def wanted_icecream_other_time(message: types.Message):
     await send_img_text_sticker(message, "https://tortodelfeo.ru/wa-data/public/shop/products/88/27/2788/images/2648/2648.750.png",
                                 "Думаешь что-то изменилось, пупсик ?", "he", start_markup)
 
@@ -347,6 +347,7 @@ async def filter_pixel(message: types.Message):
         img_resized = res.reshape((img_resized.shape))
 
         img_resized = cv2.resize(img_resized, (orig_width, orig_height), interpolation = cv2.INTER_NEAREST)
+
         cv2.imwrite(img_path, img_resized)
         await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
         tokens['pixel'] = True
@@ -357,7 +358,7 @@ async def filter_pixel(message: types.Message):
 @dp.message_handler(lambda message: message.text == "Я устал", state = ImageDownload.download_done)
 async def image_processing(message: types.Message):
     await send_img_text_sticker(message, None, "Бедненький, давай я тебя помогу тебе расслабиться ...", "relax", start_markup)
-    await StartManagment.ice_crem_not_done.set()
+    await StartManagment.ice_cream_not_done.set()
 
 @dp.message_handler(content_types = [types.ContentType.ANIMATION])
 async def echo_document(message: types.Message):

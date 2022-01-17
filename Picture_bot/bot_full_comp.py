@@ -335,7 +335,6 @@ async def filter_pixel(message: types.Message):
         orig_height, orig_width = img.shape[:2]
         small_height, small_width = orig_height // 4, orig_width // 4
         img_resized = cv2.resize(img, (small_width, small_height), interpolation = cv2.INTER_LINEAR)
-        img_resized = cv2.resize(img_resized, (orig_width, orig_height), interpolation = cv2.INTER_NEAREST)
 
         data = img_resized.reshape((-1,3))
         data = np.float32(data)
@@ -347,6 +346,7 @@ async def filter_pixel(message: types.Message):
         res = centers[labels.flatten()]
         img_resized = res.reshape((img_resized.shape))
 
+        img_resized = cv2.resize(img_resized, (orig_width, orig_height), interpolation = cv2.INTER_NEAREST)
         cv2.imwrite(img_path, img_resized)
         await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
         tokens['pixel'] = True

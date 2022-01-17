@@ -9,7 +9,7 @@ start_markup.add(*start_buttons)
 # filters_markup
 filters_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 filters_markup.add(button_sourse, button_negative, button_gamma, button_gray,
-                    button_shift, button_color_range, button_tired)
+                    button_shift, button_color_range, button_pixel, button_tired)
 # baby_help_markup
 baby_help_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 baby_help_markup.add(button_dark, button_light)

@@ -2,8 +2,8 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 
 class StartManagment(StatesGroup):
-    ice_crem_not_done = State()
-    ice_crem_done = State()
+    ice_cream_not_done = State()
+    ice_cream_done = State()
 
 class ImageDownload(StatesGroup):
     download_not_complete = State()

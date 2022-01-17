@@ -333,7 +333,7 @@ async def filter_pixel(message: types.Message):
         img_path = create_save_path(message, "pixel")
         img = cv2.imread(src_img_path)
         orig_height, orig_width = img.shape[:2]
-        small_height, small_width = orig_height // 16, orig_width // 16
+        small_height, small_width = orig_height // 4, orig_width // 4
         img_resized = cv2.resize(img, (small_width, small_height), interpolation = cv2.INTER_LINEAR)
         img_resized = cv2.resize(img_resized, (orig_width, orig_height), interpolation = cv2.INTER_NEAREST)
 

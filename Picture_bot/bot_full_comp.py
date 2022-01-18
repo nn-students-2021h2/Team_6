@@ -22,13 +22,12 @@ logging.basicConfig(level = logging.INFO)
 
 dp.middleware.setup(LoggingMiddleware())
 
-user_images_dir = ''
+# Вспомогательные функции
+def get_user_images_dir(message):
+    user_images_dir = os.path.join(main_img_dir, str(message.from_user.id))
+    return user_images_dir
 tokens = {"negative": False, "gamma": False, "gray": False, "mean_shift": False,
         "color_range": False, "pixel": False, "flag": 0}
-
-# Вспомогательные функции
-async def send_error_to_user(message, error_type):
-    await send_img_text_sticker(message, None, error_type, "error", None)
 
 async def send_img_text_sticker(message, img_path, text, sticker, reply_markup = None):
     if img_path is not None:
@@ -38,25 +37,25 @@ async def send_img_text_sticker(message, img_path, text, sticker, reply_markup =
             try:
                 await bot.send_photo(message.chat.id, get(img_path).content)
             except:
-                await send_error_to_user(message, "Ошибка в получении пути к изображению")
+                await bot.send_message(message.chat.id, "Ошибка в получении пути к изображению")
     send = await bot.send_message(message.chat.id, text, parse_mode='html', reply_markup = reply_markup)
     await bot.send_sticker(message.chat.id, open('Stickers/{}.webp'.format(sticker), 'rb'))
     return send
 
 def create_save_path(message, images_type):
-    src = os.path.join(user_images_dir, images_type + "_" + translit(message.from_user.first_name, language_code='ru', reversed=True) + ".jpg")
+    src = os.path.join(get_user_images_dir(message),
+                      images_type + "_" + translit(message.from_user.first_name, language_code='ru', reversed=True) + ".jpg")
     return src
 
 
 @dp.message_handler(commands = "start", state = "*")
 async def start_message(message: types.Message): 
-    global user_images_dir
-    user_images_dir = os.path.join(main_img_dir, str(message.from_user.id))
     me = await bot.get_me()
 
     await send_img_text_sticker(message, None, f"Добро пожаловать {message.from_user.first_name}!\n"
                                 f"Я - <b>{me.first_name}</b>, Всемогущее Всесущее Зло!\n или просто бот созданный обработать твоё изображение",
-                                "hello", reply_markup = start_markup)
+                                "hello", 
+                                reply_markup = start_markup)
     await StartManagment.ice_cream_not_done.set()
 
 @dp.message_handler(commands = "help", state = "*")
@@ -75,12 +74,6 @@ async def help_message(message: types.Message):
                                 создаём HSV массивы от минимума нашего оттенка цвета до максимума, ну а дальше всё понятно,\
                                 это простейшая реализация, многого от нее не ожидай 🙄\n", "stupid", reply_markup = start_markup)
     await StartManagment.ice_cream_not_done.set()
-
-
-#@dp.message_handler(commands="block", state = "*")
-#async def cmd_block(message: types.Message):
-#    await asyncio.sleep(10.0)  # Здоровый сон на 10 секунд
-#    await message.reply("Вы заблокированы")
 
 @dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку", state = StartManagment.ice_cream_not_done)
 async def wanted_icecream_first_time(message: types.Message):
@@ -125,18 +118,14 @@ async def send_random_value(call: types.CallbackQuery):
     await bot.answer_callback_query(callback_query_id=call.id, show_alert=False,
                               text = "Я уже заждалась твоего изображения")
 
-@dp.message_handler(content_types = ["photo"], state = StartManagment.states)
+#Не принимаем на обработку изображения, когда находимся в неправильном состоянии
+@dp.message_handler(content_types = ["photo"], state = [StartManagment.ice_cream_not_done, StartManagment.ice_cream_done, 
+                                                        ImageDownload.download_not_complete,
+                                                        Filters.color_range_working, Filters.gamma_working])
 async def download_photo(message: types.Message):
     await send_img_text_sticker(message, None, "Ты слишком торопишься, я не такая", "nono", None)
 
-@dp.message_handler(content_types = ["photo"], state = ImageDownload.download_not_complete)
-async def download_photo(message: types.Message):
-    await send_img_text_sticker(message, None, "Ты слишком торопишься, я не такая", "nono", None)
-
-@dp.message_handler(content_types = ["photo"], state = Filters.states)
-async def download_photo(message: types.Message):
-    await send_img_text_sticker(message, None, "И зачем мне это сейчас ?", "stupid", None)
-
+#Начало обработки изображения
 @dp.message_handler(content_types = ["photo"], state = ImageDownload.states)
 async def download_photo(message: types.Message):
     try:
@@ -144,7 +133,7 @@ async def download_photo(message: types.Message):
         try:
             await message.photo[-1].download(destination = src)
         except:
-            os.mkdir(user_images_dir)
+            os.mkdir(get_user_images_dir(message))
             await message.photo[-1].download(destination = src)
         await send_img_text_sticker(message, None, "Фото добавлено, братик, без слёз не взглянешь, дайка я поработаю", "omg", filters_markup)
         await ImageDownload.download_done.set()
@@ -155,16 +144,18 @@ async def download_photo(message: types.Message):
         tokens["color_range"] = False
         tokens["pixel"] = False
     except:
-        await send_error_to_user(message, "У меня не получилось загрузить изображение, ты был слишком резок.. \n Попробуй другое 😟")
+        await send_img_text_sticker(message, None, "У меня не получилось загрузить изображение, ты был слишком резок.. \n Попробуй другое 😟", "cry", None)
 
+# Обрабатываем сообщение "Исходник" и высылаем оригинал полученного ранее изображения
 @dp.message_handler(lambda message: message.text == "Исходник", state = ImageDownload.download_done)
 async def get_source(message: types.Message):
     try:
         img_path = create_save_path(message, "source")
         await send_img_text_sticker(message, img_path, "С такого ракурса стало только хуже XD", "haha", None)
     except:
-        await send_error_to_user(message, "Ой, а я не видела твоих фоточек еще...")
+        await send_img_text_sticker(message, None, "Ой, а я не видела твоих фоточек еще...", "cry", None)
 
+# Обрабатываем сообщение "Негатив" и высылаем негативное изображение
 @dp.message_handler(lambda message: message.text == "Негатив", state = ImageDownload.download_done)
 async def filter_negative(message: types.Message):
     try:
@@ -183,6 +174,7 @@ async def filter_negative(message: types.Message):
         await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
         ImageDownload.download_done.set()
 
+# Обрабатываем сообщение "Черно-белый" и высылаем черно-белое изображение
 @dp.message_handler(lambda message: message.text == "Черно-белый", state = ImageDownload.download_done)
 async def filter_gray_scale(message: types.Message):
     try:

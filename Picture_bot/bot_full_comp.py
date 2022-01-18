@@ -29,9 +29,6 @@ def get_user_images_dir(message):
 tokens = {"negative": False, "gamma": False, "gray": False, "mean_shift": False,
         "color_range": False, "pixel": False, "flag": 0}
 
-async def send_error_to_user(message, error_type):
-    await send_img_text_sticker(message, None, error_type, "error", None)
-
 async def send_img_text_sticker(message, img_path, text, sticker, reply_markup = None):
     if img_path is not None:
         try:
@@ -40,7 +37,7 @@ async def send_img_text_sticker(message, img_path, text, sticker, reply_markup =
             try:
                 await bot.send_photo(message.chat.id, get(img_path).content)
             except:
-                await send_error_to_user(message, "Ошибка в получении пути к изображению")
+                await bot.send_message(message.chat.id, "Ошибка в получении пути к изображению")
     send = await bot.send_message(message.chat.id, text, parse_mode='html', reply_markup = reply_markup)
     await bot.send_sticker(message.chat.id, open('Stickers/{}.webp'.format(sticker), 'rb'))
     return send
@@ -153,7 +150,7 @@ async def download_photo(message: types.Message):
         tokens["color_range"] = False
         tokens["pixel"] = False
     except:
-        await send_error_to_user(message, "У меня не получилось загрузить изображение, ты был слишком резок.. \n Попробуй другое 😟")
+        await send_img_text_sticker(message, None, "У меня не получилось загрузить изображение, ты был слишком резок.. \n Попробуй другое 😟", "cry", None)
 
 # Обрабатываем сообщение "Исходник" и высылаем оригинал полученного ранее изображения
 @dp.message_handler(lambda message: message.text == "Исходник", state = ImageDownload.download_done)
@@ -162,7 +159,7 @@ async def get_source(message: types.Message):
         img_path = create_save_path(message, "source")
         await send_img_text_sticker(message, img_path, "С такого ракурса стало только хуже XD", "haha", None)
     except:
-        await send_error_to_user(message, "Ой, а я не видела твоих фоточек еще...")
+        await send_img_text_sticker(message, None, "Ой, а я не видела твоих фоточек еще...", "cry", None)
 
 # Обрабатываем сообщение "Негатив" и высылаем негативное изображение
 @dp.message_handler(lambda message: message.text == "Негатив", state = ImageDownload.download_done)

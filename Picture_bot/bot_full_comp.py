@@ -44,7 +44,7 @@ async def send_img_text_sticker(message, img_path, text, sticker, reply_markup =
 
 def create_save_path(message, images_type):
     src = os.path.join(get_user_images_dir(message),
-                      images_type + "_" + translit(message.from_user.first_name, language_code='ru',reversed=True) + ".jpg")
+                      images_type + "_" + translit(message.from_user.first_name, language_code='ru', reversed=True) + ".jpg")
     return src
 
 
@@ -119,17 +119,11 @@ async def send_random_value(call: types.CallbackQuery):
                               text = "Я уже заждалась твоего изображения")
 
 #Не принимаем на обработку изображения, когда находимся в неправильном состоянии
-@dp.message_handler(content_types = ["photo"], state = StartManagment.states)
+@dp.message_handler(content_types = ["photo"], state = [StartManagment.ice_cream_not_done, StartManagment.ice_cream_done, 
+                                                        ImageDownload.download_not_complete,
+                                                        Filters.color_range_working, Filters.gamma_working])
 async def download_photo(message: types.Message):
     await send_img_text_sticker(message, None, "Ты слишком торопишься, я не такая", "nono", None)
-
-@dp.message_handler(content_types = ["photo"], state = ImageDownload.download_not_complete)
-async def download_photo(message: types.Message):
-    await send_img_text_sticker(message, None, "Ты слишком торопишься, я не такая", "nono", None)
-
-@dp.message_handler(content_types = ["photo"], state = Filters.states)
-async def download_photo(message: types.Message):
-    await send_img_text_sticker(message, None, "И зачем мне это сейчас ?", "stupid", None)
 
 #Начало обработки изображения
 @dp.message_handler(content_types = ["photo"], state = ImageDownload.states)

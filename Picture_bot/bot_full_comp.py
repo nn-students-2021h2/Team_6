@@ -115,6 +115,10 @@ async def download_photo(message: types.Message):
         await send_img_text_sticker(message, None,
                                     "У меня не получилось загрузить изображение, ты был слишком резок.. \n Попробуй другое 😟", "cry", None)
     else:
+        filters_to_clear = ["negativ", "gray", "mean_shift", "pixel"]
+        for filter in filters_to_clear:
+            if os.path.exists(create_save_path(message, filter)):
+                os.remove(create_save_path(message, filter))
         await send_img_text_sticker(message, None, "Фото добавлено, братик, без слёз не взглянешь, дайка я поработаю", "omg", filters_markup)
         await ImageDownload.download_done.set()
 

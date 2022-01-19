@@ -53,9 +53,11 @@ def adjust_gamma(image, gamma = 1.0):
     return cv2.LUT(image, table)
 
 @dp.message_handler(commands = "start", state = "*")
-async def start_message(message: types.Message): 
+async def start_message(message: types.Message):
+    if not os.path.exists(get_user_images_dir(message)):
+        await bot.send_message(message.chat.id, "О, да ты новенький")
+        os.mkdir(get_user_images_dir(message))
     me = await bot.get_me()
-
     await send_img_text_sticker(message, None, f"Добро пожаловать {message.from_user.first_name}!\n"
                                 f"Я - <b>{me.first_name}</b>, Всемогущее Всесущее Зло!\n или просто бот созданный обработать твоё изображение",
                                 "hello", 
@@ -93,7 +95,6 @@ async def wanted_icecream_other_time(message: types.Message):
 
 @dp.message_handler(lambda message: message.text == "🎨 Мне нужно обработать изображение", state = StartManagment.states)
 async def image_processing(message: types.Message):
-    #await bot.send_message(message.chat.id, message.text, types.ReplyKeyboardRemove())
     await send_img_text_sticker(message, None,
                             "Ну давай, кинь свою картинку", "giveme", filters_markup)
     await ImageDownload.download_not_complete.set()
@@ -107,26 +108,21 @@ async def download_photo(message: types.Message):
 #Начало обработки изображения
 @dp.message_handler(content_types = ["photo"], state = ImageDownload.states)
 async def download_photo(message: types.Message):
+    src = create_save_path(message, "source")
     try:
-        src = create_save_path(message, "source")
-        try:
-            await message.photo[-1].download(destination = src)
-        except:
-            os.mkdir(get_user_images_dir(message))
-            await message.photo[-1].download(destination = src)
+        await message.photo[-1].download(destination = src)
+    except:
+        await send_img_text_sticker(message, None,
+                                    "У меня не получилось загрузить изображение, ты был слишком резок.. \n Попробуй другое 😟", "cry", None)
+    else:
         await send_img_text_sticker(message, None, "Фото добавлено, братик, без слёз не взглянешь, дайка я поработаю", "omg", filters_markup)
         await ImageDownload.download_done.set()
-    except:
-        await send_img_text_sticker(message, None, "У меня не получилось загрузить изображение, ты был слишком резок.. \n Попробуй другое 😟", "cry", None)
 
 # Обрабатываем сообщение "Исходник" и высылаем оригинал полученного ранее изображения
 @dp.message_handler(lambda message: message.text == "Исходник", state = ImageDownload.download_done)
 async def get_source(message: types.Message):
-    try:
-        img_path = create_save_path(message, "source")
-        await send_img_text_sticker(message, img_path, "С такого ракурса стало только хуже XD", "haha", None)
-    except:
-        await send_img_text_sticker(message, None, "Ой, а я не видела твоих фоточек еще...", "cry", None)
+    img_path = create_save_path(message, "source")
+    await send_img_text_sticker(message, img_path, "С такого ракурса стало только хуже XD", "haha", None)
 
 # Обрабатываем сообщение "Негатив" и высылаем негативное изображение
 @dp.message_handler(lambda message: message.text == "Негатив", state = ImageDownload.download_done)

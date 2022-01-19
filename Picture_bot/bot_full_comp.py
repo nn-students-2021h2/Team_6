@@ -22,12 +22,12 @@ logging.basicConfig(level = logging.INFO)
 
 dp.middleware.setup(LoggingMiddleware())
 
+tokens = {"negative": False, "gamma": False, "gray": False, "mean_shift": False,
+        "color_range": False, "pixel": False, "flag": 0}
 # Вспомогательные функции
 def get_user_images_dir(message):
     user_images_dir = os.path.join(main_img_dir, str(message.from_user.id))
     return user_images_dir
-tokens = {"negative": False, "gamma": False, "gray": False, "mean_shift": False,
-        "color_range": False, "pixel": False, "flag": 0}
 
 async def send_img_text_sticker(message, img_path, text, sticker, reply_markup = None):
     if img_path is not None:
@@ -42,11 +42,25 @@ async def send_img_text_sticker(message, img_path, text, sticker, reply_markup =
     await bot.send_sticker(message.chat.id, open('Stickers/{}.webp'.format(sticker), 'rb'))
     return send
 
+#def years_old(call, text):
+#    await send_img_text_sticker(call.message, None, text, "giveaphoto", types.ReplyKeyboardRemove())
+#    await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Тебе точно есть 18 ?',
+#                                reply_markup=None)
+#    await ImageDownload.prepare_downloading.set()
+#    asyncio.sleep(4)
+#    await bot.answer_callback_query(callback_query_id=call.id, show_alert=False,
+#                              text = "Я уже заждалась твоего изображения")
+
 def create_save_path(message, images_type):
     src = os.path.join(get_user_images_dir(message),
                       images_type + "_" + translit(message.from_user.first_name, language_code='ru', reversed=True) + ".jpg")
     return src
 
+def adjust_gamma(image, gamma = 1.0):
+    invGamma = 1.0 / gamma
+    table = np.array([((i / 255.0) ** invGamma) * 255
+        for i in np.arange(0, 256)]).astype("uint8")
+    return cv2.LUT(image, table)
 
 @dp.message_handler(commands = "start", state = "*")
 async def start_message(message: types.Message): 
@@ -165,8 +179,8 @@ async def filter_negative(message: types.Message):
             img = cv2.imread(src_img_path)
             img_not = cv2.bitwise_not(img)
             cv2.imwrite(img_path, img_not)
-            await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
             tokens["negative"] = True
+            await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
         else:
             img_path = create_save_path(message, "negative")
             await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?", "iamnotarobot")
@@ -184,8 +198,8 @@ async def filter_gray_scale(message: types.Message):
             img = cv2.imread(src_img_path)
             img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             cv2.imwrite(img_path, img_gray)
-            await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
             tokens['gray'] = True
+            await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
         else:
             img_path = create_save_path(message, "gray")
             await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?", "iamnotarobot")
@@ -254,54 +268,29 @@ async def filter_gamma(message: types.Message):
         await send_img_text_sticker(message, None, "Введи свое значение гамма, сладкий", "giveme", baby_enough_markup)
         await Filters.gamma_working.set()
 
-def adjust_gamma(image, gamma = 1.0):
-    invGamma = 1.0 / gamma
-    table = np.array([((i / 255.0) ** invGamma) * 255
-        for i in np.arange(0, 256)]).astype("uint8")
-    return cv2.LUT(image, table)
-
 @dp.message_handler(state = Filters.gamma_working)
 async def Gamma_Function(message):
-    try:
-        if message.text == '0.5 Немного затемнить':
-            if not tokens['gamma']:
-                src_img_path = create_save_path(message, "source")
-            else:
-                src_img_path = create_save_path(message, "gamma")
-            img_path = create_save_path(message, "gamma")
-            img = cv2.imread(src_img_path)
-            img_gamma = adjust_gamma(img, 0.5)
-            img = cv2.imwrite(img_path, img_gamma)
-            await send_img_text_sticker(message, img_path, "Ух, как же красиво стало", "beautiful", filters_markup)
-            tokens['gamma'] = True
-            await ImageDownload.download_done.set()
-        elif message.text == '1.5 Немного осветлить':
-            if not tokens['gamma']:
-                src_img_path = create_save_path(message, "source")
-            else:
-                src_img_path = create_save_path(message, "gamma")
-            img_path = create_save_path(message, "gamma")
-            img = cv2.imread(src_img_path)
-            img_gamma = adjust_gamma(img, 1.5)
-            img = cv2.imwrite(img_path, img_gamma)
-            await send_img_text_sticker(message, img_path, "Намного лучше, чем было 😉", "nowbetter", filters_markup)
-            tokens['gamma'] = True
-            await ImageDownload.download_done.set()
-        elif message.text == 'Перестань (reset brightnes)':
-            await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
-            tokens['gamma'] = False
-            await ImageDownload.download_done.set()
+    if message.text == 'Перестань (reset brightnes)':
+        tokens['gamma'] = False
+        await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
+        await ImageDownload.download_done.set()
+    else:
+        try:
+            gamma = message.text[: message.text.find(" ")]
+            gamma = float(gamma)
+        except:
+            tokens["flag"] += 1
+            if tokens["flag"] == 1:
+                await send_img_text_sticker(message, None, "Гамма это просто число!", "kus", baby_help_markup)
+            if tokens["flag"] == 2:
+                tokens["flag"] = 1
+                await send_img_text_sticker(message, None, "Издеваешься, да?", "cry", baby_help_markup)
+                await ImageDownload.download_done.set()
         else:
+            tokens['flag'] = 0
+
+        if tokens["flag"] == 0:
             try:
-                gamma = (float)(message.text)
-            except:
-                tokens["flag"] += 1
-                if tokens["flag"] == 1:
-                    await send_img_text_sticker(message, None, "Гамма это просто число!", "kus", baby_help_markup)
-                if tokens["flag"] == 2:
-                    await send_img_text_sticker(message, None, "Издеваешься, да?", "cry", filters_markup)
-                    await ImageDownload.download_done.set()
-            if tokens["flag"] == 0:
                 if not tokens['gamma']:
                     src_img_path = create_save_path(message, "source")
                 else:
@@ -312,9 +301,9 @@ async def Gamma_Function(message):
                 img = cv2.imwrite(img_path, img_gamma)
                 await send_img_text_sticker(message, img_path, "О да, я даже не ожидала, что так хорошо получится", "thatsgood", filters_markup)
                 await ImageDownload.download_done.set()
-    except:
-        await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
-        ImageDownload.download_done.set()
+            except:
+                await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
+                ImageDownload.download_done.set()
 
 @dp.message_handler(lambda message: message.text == "Средний сдвиг", state = ImageDownload.download_done)
 async def filter_meanshift(message: types.Message):
@@ -325,8 +314,8 @@ async def filter_meanshift(message: types.Message):
             img = cv2.imread(src_img_path)
             image_shifted = cv2.pyrMeanShiftFiltering(img, 15, 50, 1)
             cv2.imwrite(img_path, image_shifted)
-            await send_img_text_sticker(message, img_path, "Ах, как же я хорошо поработала", "wow", None)
             tokens['mean_shift'] = True
+            await send_img_text_sticker(message, img_path, "Ах, как же я хорошо поработала", "wow", None)
         else:
             img_path = create_save_path(message, "mean_shift")
             await send_img_text_sticker(message, img_path, "Ты уже использовал этот фильтр, имей совесть! Я тут не без дела сижу ...", "tired")
@@ -358,8 +347,8 @@ async def filter_pixel(message: types.Message):
             img_resized = cv2.resize(img_resized, (orig_width, orig_height), interpolation = cv2.INTER_NEAREST)
 
             cv2.imwrite(img_path, img_resized)
-            await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
             tokens['pixel'] = True
+            await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
         else:
             img_path = create_save_path(message, "pixel")
             await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?", "iamnotarobot")

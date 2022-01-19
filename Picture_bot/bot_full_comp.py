@@ -122,6 +122,7 @@ async def send_random_value(call: types.CallbackQuery):
     await bot.answer_callback_query(callback_query_id=call.id, show_alert=False,
                               text = "Я уже заждалась твоего изображения")
 
+
 @dp.callback_query_handler(text = "years_old_not_18", state = "*")
 async def send_random_value(call: types.CallbackQuery):
     await send_img_text_sticker(call.message, None, "Ну ничего, со всеми бывало, загружай изображение!", "giveaphoto", types.ReplyKeyboardRemove())
@@ -307,29 +308,35 @@ async def Gamma_Function(message):
 
 @dp.message_handler(lambda message: message.text == "Средний сдвиг", state = ImageDownload.download_done)
 async def filter_meanshift(message: types.Message):
-    try:
         if not tokens['mean_shift']:
             src_img_path = create_save_path(message, "source")
             img_path = create_save_path(message, "mean_shift")
-            img = cv2.imread(src_img_path)
-            image_shifted = cv2.pyrMeanShiftFiltering(img, 15, 50, 1)
-            cv2.imwrite(img_path, image_shifted)
+
+            # Вдруг не захочет считывать или записывать
+            try:
+                img = cv2.imread(src_img_path)
+                image_shifted = cv2.pyrMeanShiftFiltering(img, 15, 50, 1)
+                cv2.imwrite(img_path, image_shifted)
+            except:
+                await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
+                ImageDownload.download_done.set()
             tokens['mean_shift'] = True
             await send_img_text_sticker(message, img_path, "Ах, как же я хорошо поработала", "wow", None)
         else:
             img_path = create_save_path(message, "mean_shift")
             await send_img_text_sticker(message, img_path, "Ты уже использовал этот фильтр, имей совесть! Я тут не без дела сижу ...", "tired")
-    except:
-        await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
-        ImageDownload.download_done.set()
 
 @dp.message_handler(lambda message: message.text == "Пикселизация", state = ImageDownload.download_done)
 async def filter_pixel(message: types.Message):
-    try:
-        if not tokens['pixel']:
-            src_img_path = create_save_path(message, "source")
-            img_path = create_save_path(message, "pixel")
+    if not tokens['pixel']:
+        src_img_path = create_save_path(message, "source")
+        img_path = create_save_path(message, "pixel")
+        try:
             img = cv2.imread(src_img_path)
+        except:
+            await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
+            ImageDownload.download_done.set()
+        else:
             orig_height, orig_width = img.shape[:2]
             small_height, small_width = orig_height // 4, orig_width // 4
             img_resized = cv2.resize(img, (small_width, small_height), interpolation = cv2.INTER_LINEAR)
@@ -345,16 +352,17 @@ async def filter_pixel(message: types.Message):
             img_resized = res.reshape((img_resized.shape))
 
             img_resized = cv2.resize(img_resized, (orig_width, orig_height), interpolation = cv2.INTER_NEAREST)
-
-            cv2.imwrite(img_path, img_resized)
-            tokens['pixel'] = True
-            await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
-        else:
-            img_path = create_save_path(message, "pixel")
-            await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?", "iamnotarobot")
-    except:
-        await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
-        ImageDownload.download_done.set()
+            try:
+                cv2.imwrite(img_path, img_resized)
+            except:
+                await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
+                ImageDownload.download_done.set()
+            else:
+                tokens['pixel'] = True
+                await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
+    else:
+        img_path = create_save_path(message, "pixel")
+        await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?", "iamnotarobot")
 
 @dp.message_handler(lambda message: message.text == "Я устал", state = ImageDownload.download_done)
 async def image_processing(message: types.Message):

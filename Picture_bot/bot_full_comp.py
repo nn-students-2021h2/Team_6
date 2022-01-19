@@ -22,8 +22,7 @@ logging.basicConfig(level = logging.INFO)
 
 dp.middleware.setup(LoggingMiddleware())
 
-tokens = {"negative": False, "gamma": False, "gray": False, "mean_shift": False,
-        "color_range": False, "pixel": False, "flag": 0}
+tokens = {"flag": 0}
 # Вспомогательные функции
 def get_user_images_dir(message):
     user_images_dir = os.path.join(main_img_dir, str(message.from_user.id))
@@ -54,9 +53,11 @@ def adjust_gamma(image, gamma = 1.0):
     return cv2.LUT(image, table)
 
 @dp.message_handler(commands = "start", state = "*")
-async def start_message(message: types.Message): 
+async def start_message(message: types.Message):
+    if not os.path.exists(get_user_images_dir(message)):
+        await bot.send_message(message.chat.id, "О, да ты новенький")
+        os.mkdir(get_user_images_dir(message))
     me = await bot.get_me()
-
     await send_img_text_sticker(message, None, f"Добро пожаловать {message.from_user.first_name}!\n"
                                 f"Я - <b>{me.first_name}</b>, Всемогущее Всесущее Зло!\n или просто бот созданный обработать твоё изображение",
                                 "hello", 
@@ -94,7 +95,6 @@ async def wanted_icecream_other_time(message: types.Message):
 
 @dp.message_handler(lambda message: message.text == "🎨 Мне нужно обработать изображение", state = StartManagment.states)
 async def image_processing(message: types.Message):
-    #await bot.send_message(message.chat.id, message.text, types.ReplyKeyboardRemove())
     await send_img_text_sticker(message, None,
                             "Ну давай, кинь свою картинку", "giveme", filters_markup)
     await ImageDownload.download_not_complete.set()
@@ -108,44 +108,32 @@ async def download_photo(message: types.Message):
 #Начало обработки изображения
 @dp.message_handler(content_types = ["photo"], state = ImageDownload.states)
 async def download_photo(message: types.Message):
+    src = create_save_path(message, "source")
     try:
-        src = create_save_path(message, "source")
-        try:
-            await message.photo[-1].download(destination = src)
-        except:
-            os.mkdir(get_user_images_dir(message))
-            await message.photo[-1].download(destination = src)
-        await send_img_text_sticker(message, None, "Фото добавлено, братик, без слёз не взглянешь, дайка я поработаю", "omg", filters_markup)
-        tokens["negative"] = False
-        tokens["mean_shift"] = False
-        tokens["gray"] = False
-        tokens["gamma"] = False
-        tokens["color_range"] = False
-        tokens["pixel"] = False
-        await ImageDownload.download_done.set()
+        await message.photo[-1].download(destination = src)
     except:
-        await send_img_text_sticker(message, None, "У меня не получилось загрузить изображение, ты был слишком резок.. \n Попробуй другое 😟", "cry", None)
+        await send_img_text_sticker(message, None,
+                                    "У меня не получилось загрузить изображение, ты был слишком резок.. \n Попробуй другое 😟", "cry", None)
+    else:
+        await send_img_text_sticker(message, None, "Фото добавлено, братик, без слёз не взглянешь, дайка я поработаю", "omg", filters_markup)
+        await ImageDownload.download_done.set()
 
 # Обрабатываем сообщение "Исходник" и высылаем оригинал полученного ранее изображения
 @dp.message_handler(lambda message: message.text == "Исходник", state = ImageDownload.download_done)
 async def get_source(message: types.Message):
-    try:
-        img_path = create_save_path(message, "source")
-        await send_img_text_sticker(message, img_path, "С такого ракурса стало только хуже XD", "haha", None)
-    except:
-        await send_img_text_sticker(message, None, "Ой, а я не видела твоих фоточек еще...", "cry", None)
+    img_path = create_save_path(message, "source")
+    await send_img_text_sticker(message, img_path, "С такого ракурса стало только хуже XD", "haha", None)
 
 # Обрабатываем сообщение "Негатив" и высылаем негативное изображение
 @dp.message_handler(lambda message: message.text == "Негатив", state = ImageDownload.download_done)
 async def filter_negative(message: types.Message):
     try:
-        if not tokens["negative"]:
+        if not os.path.exists(create_save_path(message, "negative")):
             src_img_path = create_save_path(message, "source")
             img_path = create_save_path(message, "negative")
             img = cv2.imread(src_img_path)
             img_not = cv2.bitwise_not(img)
             cv2.imwrite(img_path, img_not)
-            tokens["negative"] = True
             await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
         else:
             img_path = create_save_path(message, "negative")
@@ -158,13 +146,12 @@ async def filter_negative(message: types.Message):
 @dp.message_handler(lambda message: message.text == "Черно-белый", state = ImageDownload.download_done)
 async def filter_gray_scale(message: types.Message):
     try:
-        if not tokens['gray']:
+        if not os.path.exists(create_save_path(message, "gray")):
             src_img_path = create_save_path(message, "source")
             img_path = create_save_path(message, "gray")
             img = cv2.imread(src_img_path)
             img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             cv2.imwrite(img_path, img_gray)
-            tokens['gray'] = True
             await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
         else:
             img_path = create_save_path(message, "gray")
@@ -215,7 +202,6 @@ async def Color_Range(message: types.Message):
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         img_hsv = cv2.inRange(hsv, hsv_min, hsv_max)
         cv2.imwrite(img_path, img_hsv)
-        tokens['color_range'] = True
         await send_img_text_sticker(message, img_path, "Ничего себе как я могу", "beautiful", filters_markup)
         await ImageDownload.download_done.set()
     except ColorEnterError:
@@ -227,7 +213,7 @@ async def Color_Range(message: types.Message):
 @dp.message_handler(lambda message: message.text == "Гамма Фильтр", state = ImageDownload.download_done)
 async def filter_gamma(message: types.Message):
     tokens["flag"] = 0
-    if tokens["gamma"] == False:
+    if not os.path.exists(create_save_path(message, "gamma")):
         await send_img_text_sticker(message, None, "Тебе подсказать значение гамма, милашка?","mayi", baby_help_markup)
         await Filters.gamma_working.set()
     else:
@@ -237,7 +223,6 @@ async def filter_gamma(message: types.Message):
 @dp.message_handler(state = Filters.gamma_working)
 async def Gamma_Function(message):
     if message.text == 'Перестань (reset brightnes)':
-        tokens['gamma'] = False
         await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
         await ImageDownload.download_done.set()
     else:
@@ -257,7 +242,7 @@ async def Gamma_Function(message):
 
         if tokens["flag"] == 0:
             try:
-                if not tokens['gamma']:
+                if not os.path.exists(create_save_path(message, "gamma")):
                     src_img_path = create_save_path(message, "source")
                 else:
                     src_img_path = create_save_path(message, "gamma")
@@ -273,7 +258,7 @@ async def Gamma_Function(message):
 
 @dp.message_handler(lambda message: message.text == "Средний сдвиг", state = ImageDownload.download_done)
 async def filter_meanshift(message: types.Message):
-        if not tokens['mean_shift']:
+        if not os.path.exists(create_save_path(message, "mean_shift")):
             src_img_path = create_save_path(message, "source")
             img_path = create_save_path(message, "mean_shift")
 
@@ -285,7 +270,6 @@ async def filter_meanshift(message: types.Message):
             except:
                 await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
                 ImageDownload.download_done.set()
-            tokens['mean_shift'] = True
             await send_img_text_sticker(message, img_path, "Ах, как же я хорошо поработала", "wow", None)
         else:
             img_path = create_save_path(message, "mean_shift")
@@ -293,7 +277,7 @@ async def filter_meanshift(message: types.Message):
 
 @dp.message_handler(lambda message: message.text == "Пикселизация", state = ImageDownload.download_done)
 async def filter_pixel(message: types.Message):
-    if not tokens['pixel']:
+    if not os.path.exists(create_save_path(message, "pixel")):
         src_img_path = create_save_path(message, "source")
         img_path = create_save_path(message, "pixel")
         try:
@@ -323,7 +307,6 @@ async def filter_pixel(message: types.Message):
                 await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
                 ImageDownload.download_done.set()
             else:
-                tokens['pixel'] = True
                 await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
     else:
         img_path = create_save_path(message, "pixel")

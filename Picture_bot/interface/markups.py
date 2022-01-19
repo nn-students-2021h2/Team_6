@@ -21,8 +21,3 @@ baby_enough_markup.add(button_dark, button_light, button_enough)
 # colors_markup
 colors_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 colors_markup.add(button_green, button_red, button_yellow, button_orange, button_lightblue, button_blue, button_purple)
-
-# InlineKeyboardsMarkup
-# 18 years old menu
-markup_for_answer = types.InlineKeyboardMarkup(row_width = 2)
-markup_for_answer.add(button_yes, button_no)

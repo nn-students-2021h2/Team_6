@@ -7,7 +7,6 @@ class StartManagment(StatesGroup):
 
 class ImageDownload(StatesGroup):
     download_not_complete = State()
-    prepare_downloading = State()
     download_done = State()
 
 class Filters(StatesGroup):

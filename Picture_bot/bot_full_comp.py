@@ -42,15 +42,6 @@ async def send_img_text_sticker(message, img_path, text, sticker, reply_markup =
     await bot.send_sticker(message.chat.id, open('Stickers/{}.webp'.format(sticker), 'rb'))
     return send
 
-#def years_old(call, text):
-#    await send_img_text_sticker(call.message, None, text, "giveaphoto", types.ReplyKeyboardRemove())
-#    await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Тебе точно есть 18 ?',
-#                                reply_markup=None)
-#    await ImageDownload.prepare_downloading.set()
-#    asyncio.sleep(4)
-#    await bot.answer_callback_query(callback_query_id=call.id, show_alert=False,
-#                              text = "Я уже заждалась твоего изображения")
-
 def create_save_path(message, images_type):
     src = os.path.join(get_user_images_dir(message),
                       images_type + "_" + translit(message.from_user.first_name, language_code='ru', reversed=True) + ".jpg")
@@ -104,38 +95,12 @@ async def wanted_icecream_other_time(message: types.Message):
 @dp.message_handler(lambda message: message.text == "🎨 Мне нужно обработать изображение", state = StartManagment.states)
 async def image_processing(message: types.Message):
     #await bot.send_message(message.chat.id, message.text, types.ReplyKeyboardRemove())
-    await send_img_text_sticker(message, None, 'Тебе точно есть 18 ?', "18", markup_for_answer)
+    await send_img_text_sticker(message, None,
+                            "Ну давай, кинь свою картинку", "giveme", filters_markup)
     await ImageDownload.download_not_complete.set()
-
-@dp.message_handler(state = ImageDownload.download_not_complete)
-async def echo_message(message: types.Message):
-    await send_img_text_sticker(message, None, "Чего я там не видела, ответь на вопрос, малыш, тебе есть 18 ?",
-                                 "be", markup_for_answer)
-
-@dp.callback_query_handler(text = "years_old_18", state = "*")
-async def send_random_value(call: types.CallbackQuery):
-    await send_img_text_sticker(call.message, None, "Кидай свою картинку...", "giveaphoto", types.ReplyKeyboardRemove())
-    await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Тебе точно есть 18 ?',
-                reply_markup=None)
-    await ImageDownload.prepare_downloading.set()
-    asyncio.sleep(4)
-    await bot.answer_callback_query(callback_query_id=call.id, show_alert=False,
-                              text = "Я уже заждалась твоего изображения")
-
-
-@dp.callback_query_handler(text = "years_old_not_18", state = "*")
-async def send_random_value(call: types.CallbackQuery):
-    await send_img_text_sticker(call.message, None, "Ну ничего, со всеми бывало, загружай изображение!", "giveaphoto", types.ReplyKeyboardRemove())
-    await bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Тебе точно есть 18 ?',
-                reply_markup=None)
-    await ImageDownload.prepare_downloading.set()
-    asyncio.sleep(4)
-    await bot.answer_callback_query(callback_query_id=call.id, show_alert=False,
-                              text = "Я уже заждалась твоего изображения")
 
 #Не принимаем на обработку изображения, когда находимся в неправильном состоянии
 @dp.message_handler(content_types = ["photo"], state = [StartManagment.ice_cream_not_done, StartManagment.ice_cream_done, 
-                                                        ImageDownload.download_not_complete,
                                                         Filters.color_range_working, Filters.gamma_working])
 async def download_photo(message: types.Message):
     await send_img_text_sticker(message, None, "Ты слишком торопишься, я не такая", "nono", None)
@@ -151,13 +116,13 @@ async def download_photo(message: types.Message):
             os.mkdir(get_user_images_dir(message))
             await message.photo[-1].download(destination = src)
         await send_img_text_sticker(message, None, "Фото добавлено, братик, без слёз не взглянешь, дайка я поработаю", "omg", filters_markup)
-        await ImageDownload.download_done.set()
         tokens["negative"] = False
         tokens["mean_shift"] = False
         tokens["gray"] = False
         tokens["gamma"] = False
         tokens["color_range"] = False
         tokens["pixel"] = False
+        await ImageDownload.download_done.set()
     except:
         await send_img_text_sticker(message, None, "У меня не получилось загрузить изображение, ты был слишком резок.. \n Попробуй другое 😟", "cry", None)
 

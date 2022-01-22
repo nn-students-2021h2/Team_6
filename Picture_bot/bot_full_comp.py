@@ -23,6 +23,15 @@ logging.basicConfig(level = logging.INFO)
 dp.middleware.setup(LoggingMiddleware())
 
 tokens = {"flag": 0}
+colors_dect = {
+    'Зелёный': {'min': 30, 'max': 85}, 'Зеленый': {'min': 30, 'max': 85},
+    'Красный': {'min': 160, 'max': 180},
+    'Оранжевый': {'min': 10, 'max': 25},
+    'Жёлтый': {'min': 20, 'max': 40}, 'Желтый': {'min': 20, 'max': 40},
+    'Голубой': {'min': 80, 'max': 110},
+    'Синий': {'min': 100, 'max': 135},
+    'Фиолетовый': {'min': 135, 'max': 160}
+    }
 # Вспомогательные функции
 def get_user_images_dir(message):
     user_images_dir = os.path.join(main_img_dir, str(message.from_user.id))
@@ -187,36 +196,17 @@ async def Color_Range(message: types.Message):
         src_img_path = create_save_path(message, "source")
         img_path = create_save_path(message, "color_range")
         img = cv2.imread(src_img_path)
-        if img is not None:
+        if img is None:
             raise ImreadError
         #img = cv2.bilateralFilter(img,9,151,151)
         for i in range(2):
             img = cv2.bilateralFilter(img,9,75,75)
-        if message.text == 'Зелёный' or message.text == 'зелёный' or message.text == 'зеленый' \
-                                        or message.text == 'Зеленый' or message.text == 'green':
-            hsv_min = np.array((30, 100, 20), np.uint8) #35 78
-            hsv_max = np.array((85, 255, 255), np.uint8)
-        elif message.text == 'Красный' or message.text == 'красный' or message.text == 'red':
-            hsv_min = np.array((160, 100, 20), np.uint8)
-            hsv_max = np.array((180, 255, 255), np.uint8)
-        elif message.text == 'Оранжевый' or message.text == 'оранжевый' or message.text == 'orange':
-            hsv_min = np.array((10, 100, 20), np.uint8)
-            hsv_max = np.array((25, 255, 255), np.uint8)
-        elif message.text == 'Жёлтый' or message.text == 'жёлтый' or message.text == 'желтый' \
-                                        or message.text == 'Желтый' or message.text == 'yellow':
-            hsv_min = np.array((20, 100, 20), np.uint8)
-            hsv_max = np.array((40, 255, 255), np.uint8)
-        elif message.text == 'Голубой' or message.text == 'голубой' or message.text == 'blue':
-            hsv_min = np.array((80, 100, 20), np.uint8)
-            hsv_max = np.array((110, 255, 255), np.uint8)
-        elif message.text == 'Синий' or message.text == 'синий' or message.text == 'light blue':
-            hsv_min = np.array((100, 100, 20), np.uint8)
-            hsv_max = np.array((135, 255, 255), np.uint8)
-        elif message.text == 'Фиолетовый' or message.text == 'фиолетовый' or message.text == 'purple':
-            hsv_min = np.array((135, 100, 20), np.uint8)
-            hsv_max = np.array((160, 255, 255), np.uint8)
-        else:
-            raise ColorEnterError
+        try:
+            hsv_min = np.array((colors_dect[message.text]['min'], 100, 20), np.uint8)
+            hsv_max = np.array((colors_dect[message.text]['max'], 255, 255), np.uint8)
+        except:
+            await send_img_text_sticker(message, None, "Сказала же, цвета радуги \n Каждый охотник желает знать..", "kus", colors_markup)
+            Filters.color_range_working.set()
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         img_hsv = cv2.inRange(hsv, hsv_min, hsv_max)
         if cv2.imwrite(img_path, img_hsv) == False:
@@ -226,9 +216,9 @@ async def Color_Range(message: types.Message):
     except ImreadError:
         await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
         ImageDownload.download_done.set()
-    except ColorEnterError:
-        await send_img_text_sticker(message, None, "Сказала же, цвета радуги \n Каждый охотник желает знать..", "kus", colors_markup)
-        Filters.color_range_working.set()
+    #except ColorEnterError:
+    #    await send_img_text_sticker(message, None, "Сказала же, цвета радуги \n Каждый охотник желает знать..", "kus", colors_markup)
+    #    Filters.color_range_working.set()
     except ImwriteError:
         await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
         ImageDownload.download_done.set()

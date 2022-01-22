@@ -115,7 +115,7 @@ async def download_photo(message: types.Message):
         await send_img_text_sticker(message, None,
                                     "У меня не получилось загрузить изображение, ты был слишком резок.. \n Попробуй другое 😟", "cry", None)
     else:
-        filters_to_clear = ["negativ", "gray", "mean_shift", "pixel"]
+        filters_to_clear = ["negative", "gray", "mean_shift", "pixel"]
         for filter in filters_to_clear:
             if os.path.exists(create_save_path(message, filter)):
                 os.remove(create_save_path(message, filter))
@@ -136,14 +136,20 @@ async def filter_negative(message: types.Message):
             src_img_path = create_save_path(message, "source")
             img_path = create_save_path(message, "negative")
             img = cv2.imread(src_img_path)
+            if img is None:
+                raise ImreadError
             img_not = cv2.bitwise_not(img)
-            cv2.imwrite(img_path, img_not)
+            if cv2.imwrite(img_path, img_not) == False:
+                raise ImwriteError
             await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
         else:
             img_path = create_save_path(message, "negative")
             await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?", "iamnotarobot")
-    except:
-        await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
+    except ImreadError:
+        await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
+        ImageDownload.download_done.set()
+    except ImwriteError:
+        await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
         ImageDownload.download_done.set()
 
 # Обрабатываем сообщение "Черно-белый" и высылаем черно-белое изображение
@@ -154,14 +160,20 @@ async def filter_gray_scale(message: types.Message):
             src_img_path = create_save_path(message, "source")
             img_path = create_save_path(message, "gray")
             img = cv2.imread(src_img_path)
+            if img is None:
+                raise ImreadError
             img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            cv2.imwrite(img_path, img_gray)
+            if cv2.imwrite(img_path, img_gray) == False:
+                raise ImwriteError
             await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
         else:
             img_path = create_save_path(message, "gray")
             await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?", "iamnotarobot")
-    except:
-        await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
+    except ImreadError:
+        await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
+        ImageDownload.download_done.set()
+    except ImwriteError:
+        await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
         ImageDownload.download_done.set()
 
 @dp.message_handler(lambda message: message.text == "Цветовой диапазон", state = ImageDownload.download_done)
@@ -175,6 +187,8 @@ async def Color_Range(message: types.Message):
         src_img_path = create_save_path(message, "source")
         img_path = create_save_path(message, "color_range")
         img = cv2.imread(src_img_path)
+        if img is not None:
+            raise ImreadError
         #img = cv2.bilateralFilter(img,9,151,151)
         for i in range(2):
             img = cv2.bilateralFilter(img,9,75,75)
@@ -205,13 +219,18 @@ async def Color_Range(message: types.Message):
             raise ColorEnterError
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         img_hsv = cv2.inRange(hsv, hsv_min, hsv_max)
-        cv2.imwrite(img_path, img_hsv)
+        if cv2.imwrite(img_path, img_hsv) == False:
+            raise ImwriteError
         await send_img_text_sticker(message, img_path, "Ничего себе как я могу", "beautiful", filters_markup)
         await ImageDownload.download_done.set()
+    except ImreadError:
+        await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
+        ImageDownload.download_done.set()
     except ColorEnterError:
-        await send_img_text_sticker(message, None, "Сказала же, цвета радуги \n Каждый охотник желает знать..", "kus", None)
-    except:
-        await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
+        await send_img_text_sticker(message, None, "Сказала же, цвета радуги \n Каждый охотник желает знать..", "kus", colors_markup)
+        Filters.color_range_working.set()
+    except ImwriteError:
+        await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
         ImageDownload.download_done.set()
 
 @dp.message_handler(lambda message: message.text == "Гамма Фильтр", state = ImageDownload.download_done)
@@ -233,7 +252,7 @@ async def Gamma_Function(message):
         try:
             gamma = message.text[: message.text.find(" ")]
             gamma = float(gamma)
-        except:
+        except: # какая ошибка
             tokens["flag"] += 1
             if tokens["flag"] == 1:
                 await send_img_text_sticker(message, None, "Гамма это просто число!", "kus", baby_help_markup)
@@ -252,12 +271,18 @@ async def Gamma_Function(message):
                     src_img_path = create_save_path(message, "gamma")
                 img_path = create_save_path(message, "gamma")
                 img = cv2.imread(src_img_path)
+                if img is None:
+                    raise ImreadError
                 img_gamma = adjust_gamma(img, gamma)
-                img = cv2.imwrite(img_path, img_gamma)
+                if cv2.imwrite(img_path, img_gamma) == False:
+                    raise ImwriteError
                 await send_img_text_sticker(message, img_path, "О да, я даже не ожидала, что так хорошо получится", "thatsgood", filters_markup)
                 await ImageDownload.download_done.set()
-            except:
-                await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
+            except ImreadError:
+                await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
+                ImageDownload.download_done.set()
+            except ImwriteError:
+                await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
                 ImageDownload.download_done.set()
 
 @dp.message_handler(lambda message: message.text == "Средний сдвиг", state = ImageDownload.download_done)
@@ -265,16 +290,18 @@ async def filter_meanshift(message: types.Message):
         if not os.path.exists(create_save_path(message, "mean_shift")):
             src_img_path = create_save_path(message, "source")
             img_path = create_save_path(message, "mean_shift")
-
-            # Вдруг не захочет считывать или записывать
             try:
                 img = cv2.imread(src_img_path)
+                if img is None:
+                    raise ImreadError
                 image_shifted = cv2.pyrMeanShiftFiltering(img, 15, 50, 1)
-                cv2.imwrite(img_path, image_shifted)
-            except:
-                await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
-                ImageDownload.download_done.set()
-            await send_img_text_sticker(message, img_path, "Ах, как же я хорошо поработала", "wow", None)
+                if cv2.imwrite(img_path, image_shifted) == False:
+                    raise ImwriteError
+                await send_img_text_sticker(message, img_path, "Ах, как же я хорошо поработала", "wow", None)
+            except ImreadError:
+                await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
+            except ImwriteError:
+                await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
         else:
             img_path = create_save_path(message, "mean_shift")
             await send_img_text_sticker(message, img_path, "Ты уже использовал этот фильтр, имей совесть! Я тут не без дела сижу ...", "tired")
@@ -286,10 +313,8 @@ async def filter_pixel(message: types.Message):
         img_path = create_save_path(message, "pixel")
         try:
             img = cv2.imread(src_img_path)
-        except:
-            await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
-            ImageDownload.download_done.set()
-        else:
+            if img is None:
+                raise ImreadError
             orig_height, orig_width = img.shape[:2]
             small_height, small_width = orig_height // 4, orig_width // 4
             img_resized = cv2.resize(img, (small_width, small_height), interpolation = cv2.INTER_LINEAR)
@@ -305,13 +330,13 @@ async def filter_pixel(message: types.Message):
             img_resized = res.reshape((img_resized.shape))
 
             img_resized = cv2.resize(img_resized, (orig_width, orig_height), interpolation = cv2.INTER_NEAREST)
-            try:
-                cv2.imwrite(img_path, img_resized)
-            except:
-                await send_img_text_sticker(message, None, "Что-то пошло не так, прости..", "cry", filters_markup)
-                ImageDownload.download_done.set()
-            else:
-                await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
+            if cv2.imwrite(img_path, img_resized) == False:
+                raise ImwriteError
+            await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
+        except ImreadError:
+            await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
+        except ImwriteError:
+            await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
     else:
         img_path = create_save_path(message, "pixel")
         await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?", "iamnotarobot")

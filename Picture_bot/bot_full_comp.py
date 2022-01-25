@@ -12,7 +12,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from confidence_info.your_config import TOKEN
 from confidence_info.your_dir import main_img_dir
-from interface.all_states import *
+import interface.all_states as FilterBotStates
 from interface.markups import *
 from exceptions import *
 
@@ -71,7 +71,7 @@ async def start_message(message: types.Message):
                                 f"Я - <b>{me.first_name}</b>, Всемогущее Всесущее Зло!\n или просто бот созданный обработать твоё изображение",
                                 "hello", 
                                 reply_markup = start_markup)
-    await StartManagment.ice_cream_not_done.set()
+    await FilterBotStates.StartManagment.ice_cream_not_done.set()
 
 @dp.message_handler(commands = "help", state = "*")
 async def help_message(message: types.Message):
@@ -90,32 +90,35 @@ async def help_message(message: types.Message):
                                 это простейшая реализация, многого от нее не ожидай 🙄\n", "stupid", reply_markup = start_markup)
     await StartManagment.ice_cream_not_done.set()
 
-@dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку", state = StartManagment.ice_cream_not_done)
+@dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку", state = FilterBotStates.StartManagment.ice_cream_not_done)
 async def wanted_icecream_first_time(message: types.Message):
     await send_img_text_sticker(message, "https://sc01.alicdn.com/kf/UTB8CFH3C3QydeJk43PUq6AyQpXah/200128796/UTB8CFH3C3QydeJk43PUq6AyQpXah.jpg",
                                 "Упс, я уже все съела", "hehe", start_markup)
     await send_img_text_sticker(message, None, f"{message.from_user.id}", "nono", None)
-    await state.set_state(StartManagment.ice_cream_done)
+    await FilterBotStates.StartManagment.ice_cream_done.set()
 
-@dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку", state = StartManagment.ice_cream_done)
+@dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку", state = FilterBotStates.StartManagment.ice_cream_done)
 async def wanted_icecream_other_time(message: types.Message):
     await send_img_text_sticker(message, "https://tortodelfeo.ru/wa-data/public/shop/products/88/27/2788/images/2648/2648.750.png",
                                 "Думаешь что-то изменилось, пупсик ?", "he", start_markup)
 
-@dp.message_handler(lambda message: message.text == "🎨 Мне нужно обработать изображение", state = StartManagment.states)
+@dp.message_handler(lambda message: message.text == "🎨 Мне нужно обработать изображение",
+                    state = FilterBotStates.StartManagment.states)
 async def image_processing(message: types.Message):
     await send_img_text_sticker(message, None,
                             "Ну давай, кинь свою картинку", "giveme", filters_markup)
-    await ImageDownload.download_not_complete.set()
+    await FilterBotStates.ImageDownload.download_not_complete.set()
 
 #Не принимаем на обработку изображения, когда находимся в неправильном состоянии
-@dp.message_handler(content_types = ["photo"], state = [StartManagment.ice_cream_not_done, StartManagment.ice_cream_done, 
-                                                        Filters.color_range_working, Filters.gamma_working])
+@dp.message_handler(content_types = ["photo"], state = [FilterBotStates.StartManagment.ice_cream_not_done,
+                                                        FilterBotStates.StartManagment.ice_cream_done, 
+                                                        FilterBotStates.Filters.color_range_working,
+                                                        FilterBotStates.Filters.gamma_working])
 async def download_photo(message: types.Message):
     await send_img_text_sticker(message, None, "Ты слишком торопишься, я не такая", "nono", None)
 
 #Начало обработки изображения
-@dp.message_handler(content_types = ["photo"], state = ImageDownload.states)
+@dp.message_handler(content_types = ["photo"], state = FilterBotStates.ImageDownload.states)
 async def download_photo(message: types.Message):
     src = create_save_path(message, "source")
     try:
@@ -129,16 +132,16 @@ async def download_photo(message: types.Message):
             if os.path.exists(create_save_path(message, filter)):
                 os.remove(create_save_path(message, filter))
         await send_img_text_sticker(message, None, "Фото добавлено, братик, без слёз не взглянешь, дайка я поработаю", "omg", filters_markup)
-        await ImageDownload.download_done.set()
+        await FilterBotStates.ImageDownload.download_done.set()
 
 # Обрабатываем сообщение "Исходник" и высылаем оригинал полученного ранее изображения
-@dp.message_handler(lambda message: message.text == "Исходник", state = ImageDownload.download_done)
+@dp.message_handler(lambda message: message.text == "Исходник", state = FilterBotStates.ImageDownload.download_done)
 async def get_source(message: types.Message):
     img_path = create_save_path(message, "source")
     await send_img_text_sticker(message, img_path, "С такого ракурса стало только хуже XD", "haha", None)
 
 # Обрабатываем сообщение "Негатив" и высылаем негативное изображение
-@dp.message_handler(lambda message: message.text == "Негатив", state = ImageDownload.download_done)
+@dp.message_handler(lambda message: message.text == "Негатив", state = FilterBotStates.ImageDownload.download_done)
 async def filter_negative(message: types.Message):
     try:
         if not os.path.exists(create_save_path(message, "negative")):
@@ -156,13 +159,13 @@ async def filter_negative(message: types.Message):
             await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?", "iamnotarobot")
     except ImreadError:
         await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
-        ImageDownload.download_done.set()
+        FilterBotStates.ImageDownload.download_done.set()
     except ImwriteError:
         await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
-        ImageDownload.download_done.set()
+        FilterBotStates.ImageDownload.download_done.set()
 
 # Обрабатываем сообщение "Черно-белый" и высылаем черно-белое изображение
-@dp.message_handler(lambda message: message.text == "Черно-белый", state = ImageDownload.download_done)
+@dp.message_handler(lambda message: message.text == "Черно-белый", state = FilterBotStates.ImageDownload.download_done)
 async def filter_gray_scale(message: types.Message):
     try:
         if not os.path.exists(create_save_path(message, "gray")):
@@ -180,17 +183,17 @@ async def filter_gray_scale(message: types.Message):
             await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?", "iamnotarobot")
     except ImreadError:
         await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
-        ImageDownload.download_done.set()
+        FilterBotStates.ImageDownload.download_done.set()
     except ImwriteError:
         await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
-        ImageDownload.download_done.set()
+        FilterBotStates.ImageDownload.download_done.set()
 
-@dp.message_handler(lambda message: message.text == "Цветовой диапазон", state = ImageDownload.download_done)
+@dp.message_handler(lambda message: message.text == "Цветовой диапазон", state = FilterBotStates.ImageDownload.download_done)
 async def colors(message: types.Message):
     await send_img_text_sticker(message, None, "Введи один из цветов радуги, дорогуша","mayi", colors_markup)
-    await Filters.color_range_working.set()
+    await FilterBotStates.Filters.color_range_working.set()
 
-@dp.message_handler(state = Filters.color_range_working)
+@dp.message_handler(state = FilterBotStates.Filters.color_range_working)
 async def Color_Range(message: types.Message):
     try:
         src_img_path = create_save_path(message, "source")
@@ -206,38 +209,38 @@ async def Color_Range(message: types.Message):
             hsv_max = np.array((colors_dect[message.text]['max'], 255, 255), np.uint8)
         except:
             await send_img_text_sticker(message, None, "Сказала же, цвета радуги \n Каждый охотник желает знать..", "kus", colors_markup)
-            Filters.color_range_working.set()
+            await FilterBotStates.Filters.color_range_working.set()
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         img_hsv = cv2.inRange(hsv, hsv_min, hsv_max)
         if cv2.imwrite(img_path, img_hsv) == False:
             raise ImwriteError
         await send_img_text_sticker(message, img_path, "Ничего себе как я могу", "beautiful", filters_markup)
-        await ImageDownload.download_done.set()
+        await FilterBotStates.ImageDownload.download_done.set()
     except ImreadError:
         await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
-        ImageDownload.download_done.set()
+        await FilterBotStates.ImageDownload.download_done.set()
     #except ColorEnterError:
     #    await send_img_text_sticker(message, None, "Сказала же, цвета радуги \n Каждый охотник желает знать..", "kus", colors_markup)
     #    Filters.color_range_working.set()
     except ImwriteError:
         await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
-        ImageDownload.download_done.set()
+        await FilterBotStates.ImageDownload.download_done.set()
 
-@dp.message_handler(lambda message: message.text == "Гамма Фильтр", state = ImageDownload.download_done)
+@dp.message_handler(lambda message: message.text == "Гамма Фильтр", state = FilterBotStates.ImageDownload.download_done)
 async def filter_gamma(message: types.Message):
     tokens["flag"] = 0
     if not os.path.exists(create_save_path(message, "gamma")):
         await send_img_text_sticker(message, None, "Тебе подсказать значение гамма, милашка?","mayi", baby_help_markup)
-        await Filters.gamma_working.set()
+        await FilterBotStates.Filters.gamma_working.set()
     else:
         await send_img_text_sticker(message, None, "Введи свое значение гамма, сладкий", "giveme", baby_enough_markup)
-        await Filters.gamma_working.set()
+        await FilterBotStates.Filters.gamma_working.set()
 
-@dp.message_handler(state = Filters.gamma_working)
+@dp.message_handler(state = FilterBotStates.Filters.gamma_working)
 async def Gamma_Function(message):
     if message.text == 'Перестань (reset brightnes)':
         await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
-        await ImageDownload.download_done.set()
+        await FilterBotStates.ImageDownload.download_done.set()
     else:
         try:
             gamma = message.text[: message.text.find(" ")]
@@ -249,7 +252,7 @@ async def Gamma_Function(message):
             if tokens["flag"] == 2:
                 tokens["flag"] = 1
                 await send_img_text_sticker(message, None, "Издеваешься, да?", "cry", baby_help_markup)
-                await ImageDownload.download_done.set()
+                await FilterBotStates.ImageDownload.download_done.set()
         else:
             tokens['flag'] = 0
 
@@ -267,15 +270,15 @@ async def Gamma_Function(message):
                 if cv2.imwrite(img_path, img_gamma) == False:
                     raise ImwriteError
                 await send_img_text_sticker(message, img_path, "О да, я даже не ожидала, что так хорошо получится", "thatsgood", filters_markup)
-                await ImageDownload.download_done.set()
+                await FilterBotStates.ImageDownload.download_done.set()
             except ImreadError:
                 await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
-                ImageDownload.download_done.set()
+                await FilterBotStates.ImageDownload.download_done.set()
             except ImwriteError:
                 await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
-                ImageDownload.download_done.set()
+                await FilterBotStates.ImageDownload.download_done.set()
 
-@dp.message_handler(lambda message: message.text == "Средний сдвиг", state = ImageDownload.download_done)
+@dp.message_handler(lambda message: message.text == "Средний сдвиг", state = FilterBotStates.ImageDownload.download_done)
 async def filter_meanshift(message: types.Message):
         if not os.path.exists(create_save_path(message, "mean_shift")):
             src_img_path = create_save_path(message, "source")
@@ -296,7 +299,7 @@ async def filter_meanshift(message: types.Message):
             img_path = create_save_path(message, "mean_shift")
             await send_img_text_sticker(message, img_path, "Ты уже использовал этот фильтр, имей совесть! Я тут не без дела сижу ...", "tired")
 
-@dp.message_handler(lambda message: message.text == "Пикселизация", state = ImageDownload.download_done)
+@dp.message_handler(lambda message: message.text == "Пикселизация", state = FilterBotStates.ImageDownload.download_done)
 async def filter_pixel(message: types.Message):
     if not os.path.exists(create_save_path(message, "pixel")):
         src_img_path = create_save_path(message, "source")
@@ -331,10 +334,10 @@ async def filter_pixel(message: types.Message):
         img_path = create_save_path(message, "pixel")
         await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?", "iamnotarobot")
 
-@dp.message_handler(lambda message: message.text == "Я устал", state = ImageDownload.download_done)
+@dp.message_handler(lambda message: message.text == "Я устал", state = FilterBotStates.ImageDownload.download_done)
 async def image_processing(message: types.Message):
     await send_img_text_sticker(message, None, "Бедненький, давай я тебя помогу тебе расслабиться ...", "relax", start_markup)
-    await StartManagment.ice_cream_not_done.set()
+    await FilterBotStates.StartManagment.ice_cream_not_done.set()
 
 @dp.message_handler(content_types = [types.ContentType.ANIMATION])
 async def echo_document(message: types.Message):

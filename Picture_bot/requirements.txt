@@ -1,0 +1,4 @@
+requests==2.27.1
+opencv-python==4.5.5.62
+transliterate==1.10.2
+aiogram==2.18

@@ -1,7 +1,0 @@
-{   
-    "config_name": "default_test",
-    "NAME": "test_config",
-    "MODE": "common",
-    "HOST": "loca"lhost,
-    "PORT": 8080
-}

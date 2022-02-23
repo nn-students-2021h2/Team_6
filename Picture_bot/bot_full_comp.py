@@ -129,7 +129,7 @@ async def download_photo(message: types.Message):
         изображение, ты был слишком резок.. \n Попробуй другое 😟",
                                     "cry", None)
     else:
-        filters_to_clear = ["negative", "gray", "mean_shift", "pixel"]
+        filters_to_clear = ["negative", "gray", "mean_shift", "pixel", "cartoon"]
         for clear_degit in filters_to_clear:
             if os.path.exists(create_save_path(message, clear_degit)):
                 os.remove(create_save_path(message, clear_degit))
@@ -202,6 +202,32 @@ async def filter_gray_scale(message: types.Message):
 async def colors(message: types.Message):
     await send_img_text_sticker(message, None, "Введи один из цветов радуги, дорогуша", "mayi", colors_markup)
     await FilterBotStates.Filters.color_range_working.set()
+
+
+@dp.message_handler(lambda message: message.text == "Мультиколизация",
+                    state=FilterBotStates.ImageDownload.download_done)
+async def filter_gray_scale(message: types.Message):
+    try:
+        if not os.path.exists(create_save_path(message, "cartoon")):
+            src_img_path = create_save_path(message, "source")
+            img_path = create_save_path(message, "cartoon")
+            img = imread(src_img_path)
+            if img is None:
+                raise ImreadError
+            img_res = filters.Cartoon_Filter(img)
+            if not imwrite(img_path, img_res):
+                raise ImwriteError
+            await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
+        else:
+            img_path = create_save_path(message, "cartoon")
+            await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?",
+                                        "iamnotarobot")
+    except ImreadError:
+        await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
+        FilterBotStates.ImageDownload.download_done.set()
+    except ImwriteError:
+        await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
+        FilterBotStates.ImageDownload.download_done.set()
 
 
 @dp.message_handler(state=FilterBotStates.Filters.color_range_working)

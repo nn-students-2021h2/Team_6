@@ -13,6 +13,7 @@ button_gray = types.KeyboardButton("Черно-белый")
 button_shift = types.KeyboardButton("Средний сдвиг")
 button_color_range = types.KeyboardButton("Цветовой диапазон")
 button_pixel = types.KeyboardButton("Пикселизация")
+button_cartoon = types.KeyboardButton("Мультиколизация")
 button_tired = types.KeyboardButton("Я устал")
 
 # for gamma filter work

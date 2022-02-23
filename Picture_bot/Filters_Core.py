@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-
+import Cartoon_Neuro as CN
 colors_dict = {
     'Зелёный': {'min': 30, 'max': 85}, 'Зеленый': {'min': 30, 'max': 85},
     'Красный': {'min': 160, 'max': 180},
@@ -62,6 +62,37 @@ def Pixel_Filter(img):
     return img_res
 
 
+def Exp_Filter(img):
+    # define MORPH_OPEN         2
+    # define MORPH_CLOSE        3
+    # define MORPH_GRADIENT     4
+    # define MORPH_TOPHAT       5
+    # define MORPH_BLACKHAT     6
+
+    kernel1 = np.ones((7, 7), np.uint8)
+    kernel2 = np.array([
+        [0, 0, 1, 1, 1, 0, 0],
+        [0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 0],
+        [0, 0, 1, 1, 1, 0, 0]], dtype=np.uint8)
+    kernel3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    img_res = cv2.morphologyEx(img, cv2.MORPH_BLACKHAT, kernel2, iterations=10)
+    img_res = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel2, iterations=1)
+    #img_res = cv2.morphologyEx(img_res, cv2.MORPH_GRADIENT, kernel3, iterations=3)
+    return img_res
+
+
+def Cartoon_Filter(img, batch_size=4):
+    return CN.main(img, batch_size, 'cpu')
+
+
 if __name__ == '__main__':
-    pass
+    img = cv2.imread('C:/PNGLIVE/test4.jpg')
+    cv2.imshow('image1', img)
+    cv2.imshow('image2', Cartoon_Filter(img))
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 

@@ -39,6 +39,16 @@ def Gamma_Num(num):
     return float(num)
 
 
+def param(message):
+    parametrs = message.split(' ')
+    if len(parametrs) != 2:
+        raise
+    parametrs = list(map(int, parametrs))
+    if parametrs[0] < 1 or parametrs[1] < 1 or parametrs[0] > 200 or parametrs[1] > 200 or parametrs[0] % 2 == 0:
+        raise
+    return parametrs
+
+
 def Gamma_Filter(img, gamma: float):
     invGamma = 1.0 / gamma
     table = np.array([((i / 255.0) ** invGamma) * 255
@@ -62,26 +72,41 @@ def Pixel_Filter(img):
     return img_res
 
 
-def Exp_Filter(img):
+def Morph_Filter(img, mode, arr_size):
     # define MORPH_OPEN         2
     # define MORPH_CLOSE        3
     # define MORPH_GRADIENT     4
     # define MORPH_TOPHAT       5
     # define MORPH_BLACKHAT     6
 
-    kernel1 = np.ones((7, 7), np.uint8)
-    kernel2 = np.array([
-        [0, 0, 1, 1, 1, 0, 0],
-        [0, 1, 1, 1, 1, 1, 0],
-        [1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1],
-        [0, 1, 1, 1, 1, 1, 0],
-        [0, 0, 1, 1, 1, 0, 0]], dtype=np.uint8)
-    kernel3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    img_res = cv2.morphologyEx(img, cv2.MORPH_BLACKHAT, kernel2, iterations=10)
-    img_res = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel2, iterations=1)
-    #img_res = cv2.morphologyEx(img_res, cv2.MORPH_GRADIENT, kernel3, iterations=3)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (arr_size, arr_size))
+    img_res = cv2.morphologyEx(img, cv2.MORPH_BLACKHAT, kernel, iterations=1)
+    # img_res = cv2.morphologyEx(img_res, cv2.MORPH_GRADIENT, kernel3, iterations=1)
+    img_res = cv2.morphologyEx(img_res, cv2.MORPH_TOPHAT, kernel, iterations=10)
+    # img_res = cv2.cvtColor(img_res, cv2.COLOR_BGR2GRAY)
+    # img_res = cv2.morphologyEx(img_res, cv2.MORPH_OPEN, kernel3, iterations=1)
+    return img_res
+
+
+def Border_Filter(img, arr_size, degree):
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (arr_size, arr_size))
+    img_res = cv2.morphologyEx(img, cv2.MORPH_BLACKHAT, kernel, iterations=degree)
+    img_res = cv2.morphologyEx(img_res, cv2.MORPH_TOPHAT, kernel, iterations=1)
+    img_res = cv2.cvtColor(img_res, cv2.COLOR_BGR2GRAY)
+    return img_res
+
+
+def Morphling_Filter(img, arr_size, degree):
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (arr_size, arr_size))
+    img_res = cv2.morphologyEx(img, cv2.MORPH_BLACKHAT, kernel, iterations=degree)
+
+    return img_res
+
+
+def Mosaic_Filter(img, arr_size, degree):
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (arr_size, arr_size))
+    img_res = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel, iterations=degree)
+
     return img_res
 
 
@@ -92,7 +117,7 @@ def Cartoon_Filter(img, batch_size=4):
 if __name__ == '__main__':
     img = cv2.imread('C:/PNGLIVE/test4.jpg')
     cv2.imshow('image1', img)
-    cv2.imshow('image2', Cartoon_Filter(img))
+    cv2.imshow('image2', Morph_Filter(img, 8, 3))
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 

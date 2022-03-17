@@ -14,6 +14,11 @@ button_shift = types.KeyboardButton("Средний сдвиг")
 button_color_range = types.KeyboardButton("Цветовой диапазон")
 button_pixel = types.KeyboardButton("Пикселизация")
 button_cartoon = types.KeyboardButton("Мультиколизация")
+button_border = types.KeyboardButton("Поработаем с границами")
+button_mosaic = types.KeyboardButton("Мозайка")
+button_morphling = types.KeyboardButton("Морфлинг")
+button_morph_set_prof = types.KeyboardButton("Поработай")
+button_morph = types.KeyboardButton("Морфология")
 button_tired = types.KeyboardButton("Я устал")
 
 # for gamma filter work

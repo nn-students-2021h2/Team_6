@@ -216,24 +216,34 @@ async def morph_settings_choosing(message: types.Message):
     if message.text == "Мозайка":
         await FilterBotStates.MorphManagment.mosaic_working.set()
         await send_img_text_sticker(message, None,
-                                    "С каким ядром и сколько раз ты хочешь применить эту морфологию?\n'Нечетное число',\
-                                    'Любое число от единицы'\nНу или доверься профессионалу и нажми на кнопку", "mayi",
+                                    "С каким ядром и сколько раз ты хочешь применить эту морфологию?\n'Нечетное число'\
+                                    \'Любое число от единицы'\nНу или доверься профессионалу и нажми на кнопку", "mayi",
                                     morph_set_prof_markup)
     elif message.text == "Поработаем с границами":
         await FilterBotStates.MorphManagment.border_working.set()
         await send_img_text_sticker(message, None,
-                                    "С каким ядром и сколько раз ты хочешь применить эту морфологию?\n'Нечетное число',\
-                                    'Любое число от единицы'\nНу или доверься профессионалу и нажми на кнопку", "mayi",
+                                    "С каким ядром и сколько раз ты хочешь применить эту морфологию?\n'Нечетное число'\
+                                    \'Любое число от единицы'\nНу или доверься профессионалу и нажми на кнопку", "mayi",
                                     morph_set_prof_markup)
     elif message.text == "Морфлинг":
         await FilterBotStates.MorphManagment.morphling_working.set()
         await send_img_text_sticker(message, None,
-                                    "С каким ядром и сколько раз ты хочешь применить эту морфологию?\n'Нечетное число',\
-                                    'Любое число от единицы'\nНу или доверься профессионалу и нажми на кнопку", "mayi",
+                                    "С каким ядром и сколько раз ты хочешь применить эту морфологию?\n'Нечетное число' \
+                                    \'Любое число от единицы'\nНу или доверься профессионалу и нажми на кнопку", "mayi",
                                     morph_set_prof_markup)
     else:
         await send_img_text_sticker(message, None, "Я такого не знаю, повтори-ка",
                                     "kus", morph_markup)
+
+
+@dp.message_handler(lambda message: message.text == "Перестань", state=[
+                    FilterBotStates.MorphManagment.morphling_working,
+                    FilterBotStates.MorphManagment.border_working,
+                    FilterBotStates.MorphManagment.mosaic_working
+                    ])
+async def reset(message: types.Message):
+    await FilterBotStates.ImageDownload.download_done.set()
+    await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
 
 
 @dp.message_handler(state=[
@@ -246,87 +256,78 @@ async def morph_settings_choosing(message: types.Message, state: FSMContext):
     current_state = str(current_state)
     if current_state == "MorphManagment:mosaic_working":
         try:
-            parametrs = filters.param(message.text)
+            parametrs = filters.param(message.text, 'mosaic')
         except:
             await send_img_text_sticker(message, None,
                                         "Ты неправильно меня понял, попробуй ещё раз", "kus",
                                         morph_set_prof_markup)
         else:
-            await FilterBotStates.ImageDownload.download_done.set()
+            await FilterBotStates.MorphManagment.mosaic_working.set()
             try:
-                if not os.path.exists(create_save_path(message, "mosaic")):
-                    src_img_path = create_save_path(message, "source")
-                    img_path = create_save_path(message, "mosaic")
-                    img = imread(src_img_path)
-                    if img is None:
-                        raise ImreadError
-                    img_res = filters.Mosaic_Filter(img, parametrs[0], parametrs[1])
-                    if not imwrite(img_path, img_res):
-                        raise ImwriteError
-                    await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
-                else:
-                    img_path = create_save_path(message, "mosaic")
-                    await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?",
-                                                "iamnotarobot")
+                src_img_path = create_save_path(message, "source")
+                img_path = create_save_path(message, "mosaic")
+                img = imread(src_img_path)
+                if img is None:
+                    raise ImreadError
+                img_res = filters.Mosaic_Filter(img, parametrs[0], parametrs[1])
+                if not imwrite(img_path, img_res):
+                    raise ImwriteError
+                await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
             except ImreadError:
+                await FilterBotStates.ImageDownload.download_done.set()
                 await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
             except ImwriteError:
+                await FilterBotStates.ImageDownload.download_done.set()
                 await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
     elif current_state == "MorphManagment:border_working":
         try:
-            parametrs = filters.param(message.text)
+            parametrs = filters.param(message.text, 'border')
         except:
             await send_img_text_sticker(message, None,
                                         "Ты неправильно меня понял, попробуй ещё раз", "kus",
                                         morph_set_prof_markup)
         else:
-            await FilterBotStates.ImageDownload.download_done.set()
+            await FilterBotStates.MorphManagment.border_working.set()
             try:
-                if not os.path.exists(create_save_path(message, "border")):
-                    src_img_path = create_save_path(message, "source")
-                    img_path = create_save_path(message, "border")
-                    img = imread(src_img_path)
-                    if img is None:
-                        raise ImreadError
-                    img_res = filters.Border_Filter(img, parametrs[0], parametrs[1])
-                    if not imwrite(img_path, img_res):
-                        raise ImwriteError
-                    await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
-                else:
-                    img_path = create_save_path(message, "border")
-                    await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?",
-                                                "iamnotarobot")
+                src_img_path = create_save_path(message, "source")
+                img_path = create_save_path(message, "border")
+                img = imread(src_img_path)
+                if img is None:
+                    raise ImreadError
+                img_res = filters.Border_Filter(img, parametrs[0], parametrs[1])
+                if not imwrite(img_path, img_res):
+                    raise ImwriteError
+                await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
             except ImreadError:
+                await FilterBotStates.ImageDownload.download_done.set()
                 await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
             except ImwriteError:
+                await FilterBotStates.ImageDownload.download_done.set()
                 await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
     else:
         try:
-            parametrs = filters.param(message.text)
+            parametrs = filters.param(message.text, 'morphling')
         except:
             await send_img_text_sticker(message, None,
                                         "Ты неправильно меня понял, попробуй ещё раз", "kus",
                                         morph_set_prof_markup)
         else:
-            await FilterBotStates.ImageDownload.download_done.set()
+            await FilterBotStates.MorphManagment.morphling_working.set()
             try:
-                if not os.path.exists(create_save_path(message, "morphling")):
-                    src_img_path = create_save_path(message, "source")
-                    img_path = create_save_path(message, "morphling")
-                    img = imread(src_img_path)
-                    if img is None:
-                        raise ImreadError
-                    img_res = filters.Morphling_Filter(img, parametrs[0], parametrs[1])
-                    if not imwrite(img_path, img_res):
-                        raise ImwriteError
-                    await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
-                else:
-                    img_path = create_save_path(message, "morphling")
-                    await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?",
-                                                "iamnotarobot")
+                src_img_path = create_save_path(message, "source")
+                img_path = create_save_path(message, "morphling")
+                img = imread(src_img_path)
+                if img is None:
+                    raise ImreadError
+                img_res = filters.Morphling_Filter(img, parametrs[0], parametrs[1])
+                if not imwrite(img_path, img_res):
+                    raise ImwriteError
+                await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
             except ImreadError:
+                await FilterBotStates.ImageDownload.download_done.set()
                 await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
             except ImwriteError:
+                await FilterBotStates.ImageDownload.download_done.set()
                 await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
 
 
@@ -393,7 +394,7 @@ async def filter_gamma(message: types.Message):
 
 @dp.message_handler(state=FilterBotStates.Filters.gamma_working)
 async def Gamma_Function(message):
-    if message.text == 'Перестань (reset brightnes)':
+    if message.text == 'Перестань':
         await FilterBotStates.ImageDownload.download_done.set()
         await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
     else:

@@ -39,7 +39,15 @@ def Gamma_Num(num):
     return float(num)
 
 
-def param(message):
+def param(message, type):
+    if "Поработай" in message:
+        if type == 'mosaic':
+            return [7, 3]
+        elif type == 'border':
+            return [7, 12]
+        else:
+            return [7, 5]
+
     parametrs = message.split(' ')
     if len(parametrs) != 2:
         raise

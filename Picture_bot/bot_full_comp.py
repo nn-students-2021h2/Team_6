@@ -22,6 +22,8 @@ logging.basicConfig(level=logging.INFO)
 
 dp.middleware.setup(LoggingMiddleware())
 
+url_img = "https://tortodelfeo.ru//wa-data/public/shop/products/88/27/2788/images/2648/2648.750.png"
+
 
 # Вспомогательные функции
 def get_user_images_dir(message):
@@ -85,39 +87,28 @@ async def help_message(message: types.Message):
                     state=FilterBotStates.StartManagment.ice_cream_not_done)
 async def wanted_icecream_first_time(message: types.Message):
     await FilterBotStates.StartManagment.ice_cream_done.set()
-    await send_img_text_sticker(message, "https://sc01.alicdn.com\
-    /kf/UTB8CFH3C3QydeJk43PUq6AyQpXah/200128796/UTB8CFH3C3QydeJk43PUq6AyQpXah.jpg",
-                                "Упс, я уже все съела", "hehe", start_markup)
-    await send_img_text_sticker(message, None, f"{message.from_user.id}", "nono", None)
+    await send_img_text_sticker(message, url_img, "Упс, я уже все съела", "hehe", start_markup)
 
 
 @dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку",
                     state=FilterBotStates.StartManagment.ice_cream_done)
 async def wanted_icecream_other_time(message: types.Message):
-    await send_img_text_sticker(message, "https://tortodelfeo.ru\
-    /wa-data/public/shop/products/88/27/2788/images/2648/2648.750.png",
-                                "Думаешь что-то изменилось, пупсик ?", "he", start_markup)
+    await send_img_text_sticker(message, url_img, "Думаешь что-то изменилось, пупсик ?", "he", start_markup)
 
 
 @dp.message_handler(lambda message: message.text == "🎨 Мне нужно обработать изображение",
                     state=FilterBotStates.StartManagment.states)
 async def image_processing(message: types.Message):
     await FilterBotStates.ImageDownload.download_not_complete.set()
-    await send_img_text_sticker(message, None,
-                                "Ну давай, кинь свою картинку", "giveme", filters_markup)
+    await send_img_text_sticker(message, None, "Ну давай, кинь свою картинку", "giveme", filters_markup)
+
 
 
 # Не принимаем на обработку изображения, когда находимся в неправильном состоянии
-@dp.message_handler(content_types=["photo"], state=[FilterBotStates.StartManagment.ice_cream_not_done,
-                                                    FilterBotStates.StartManagment.ice_cream_done,
-                                                    FilterBotStates.Filters.color_range_working,
-                                                    FilterBotStates.Filters.morph_choosing_working,
-                                                    FilterBotStates.Filters.pixel_working,
-                                                    FilterBotStates.Gamma_filter.gamma_start,
-                                                    FilterBotStates.Gamma_filter.gamma_1,
-                                                    FilterBotStates.MorphManagment.mosaic_working,
-                                                    FilterBotStates.MorphManagment.morphling_working,
-                                                    FilterBotStates.MorphManagment.border_working])
+@dp.message_handler(content_types=["photo"], state=FilterBotStates.StartManagment.states +
+                                                  FilterBotStates.Filters.states +
+                                                  FilterBotStates.Gamma_filter.states +
+                                                  FilterBotStates.MorphManagment.states)
 async def download_photo(message: types.Message):
     await send_img_text_sticker(message, None, "Ты слишком торопишься, я не такая", "nono", None)
 
@@ -209,11 +200,7 @@ async def morph_choosing(message: types.Message):
 
 
 # Останавливаем принятие запросов значений параметров для работы фильтров morph
-@dp.message_handler(lambda message: message.text == "Перестань", state=[
-                    FilterBotStates.MorphManagment.morphling_working,
-                    FilterBotStates.MorphManagment.border_working,
-                    FilterBotStates.MorphManagment.mosaic_working
-                    ])
+@dp.message_handler(lambda message: message.text == "Перестань", state=FilterBotStates.MorphManagment.states)
 async def reset(message: types.Message):
     await FilterBotStates.ImageDownload.download_done.set()
     await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
@@ -246,11 +233,7 @@ async def morph_settings_choosing(message: types.Message):
 
 
 # Обрабатываем заданные параметры для работы фильтров morph
-@dp.message_handler(state=[
-                    FilterBotStates.MorphManagment.morphling_working,
-                    FilterBotStates.MorphManagment.border_working,
-                    FilterBotStates.MorphManagment.mosaic_working
-                    ])
+@dp.message_handler(state=FilterBotStates.MorphManagment.states)
 async def morph_processing(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     current_state = str(current_state)
@@ -392,17 +375,14 @@ async def Color_Range(message: types.Message):
 
 
 # Обрабатываем запрос "Гамма Фильтр"
-@dp.message_handler(lambda message: message.text == "Гамма Фильтр",
-                    state=FilterBotStates.ImageDownload.download_done)
+@dp.message_handler(lambda message: message.text == "Гамма Фильтр", state=FilterBotStates.ImageDownload.download_done)
 async def filter_gamma(message: types.Message):
     await FilterBotStates.Gamma_filter.gamma_start.set()
     await send_img_text_sticker(message, None, "Введи свое значение гамма, сладкий", "giveme", baby_help_markup)
 
 
 # Останавливаем принятие запросов значений параметров для работы фильтра gamma
-@dp.message_handler(lambda message: message.text == "Перестань", state=[
-                    FilterBotStates.Gamma_filter.gamma_start,
-                    FilterBotStates.Gamma_filter.gamma_1])
+@dp.message_handler(lambda message: message.text == "Перестань", state=FilterBotStates.Gamma_filter.states)
 async def reset(message: types.Message):
     await FilterBotStates.ImageDownload.download_done.set()
     await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
@@ -562,6 +542,7 @@ async def echo_document(message: types.Message):
 # Если ничего из вышеперечисленного не сработало
 @dp.message_handler(state="*")
 async def echo_message(message):
+    await FilterBotStates.StartManagment.ice_cream_not_done.set()
     await send_img_text_sticker(message, None,
                                 f"Я не знаю что ответить 😢\n"
                                 f"Доступные команды: \n/start - полная перезагрузка \n"

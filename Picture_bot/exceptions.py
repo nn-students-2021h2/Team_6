@@ -8,3 +8,7 @@ class ImreadError(Exception):
 
 class ImwriteError(Exception):
     pass
+
+
+class Zero_Error(Exception):
+    pass

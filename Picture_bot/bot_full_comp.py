@@ -22,8 +22,6 @@ logging.basicConfig(level=logging.INFO)
 
 dp.middleware.setup(LoggingMiddleware())
 
-tokens = {"flag": 0}
-
 
 # Вспомогательные функции
 def get_user_images_dir(message):
@@ -113,7 +111,13 @@ async def image_processing(message: types.Message):
 @dp.message_handler(content_types=["photo"], state=[FilterBotStates.StartManagment.ice_cream_not_done,
                                                     FilterBotStates.StartManagment.ice_cream_done,
                                                     FilterBotStates.Filters.color_range_working,
-                                                    FilterBotStates.Filters.gamma_working])
+                                                    FilterBotStates.Filters.morph_choosing_working,
+                                                    FilterBotStates.Filters.pixel_working,
+                                                    FilterBotStates.Gamma_filter.gamma_start,
+                                                    FilterBotStates.Gamma_filter.gamma_1,
+                                                    FilterBotStates.MorphManagment.mosaic_working,
+                                                    FilterBotStates.MorphManagment.morphling_working,
+                                                    FilterBotStates.MorphManagment.border_working])
 async def download_photo(message: types.Message):
     await send_img_text_sticker(message, None, "Ты слишком торопишься, я не такая", "nono", None)
 
@@ -131,7 +135,7 @@ async def download_photo(message: types.Message):
     else:
         await FilterBotStates.ImageDownload.download_done.set()
         filters_to_clear = ["negative", "gray", "mean_shift", "pixel", "cartoon", "gamma", "morphling", "mosaic",
-                            "border"]
+                            "border", "sobel"]
         for clear_degit in filters_to_clear:
             if os.path.exists(create_save_path(message, clear_degit)):
                 os.remove(create_save_path(message, clear_degit))
@@ -204,6 +208,17 @@ async def morph_choosing(message: types.Message):
     await send_img_text_sticker(message, None, "А какой именно тебя интересует?", "mayi", morph_markup)
 
 
+# Останавливаем принятие запросов значений параметров для работы фильтров morph
+@dp.message_handler(lambda message: message.text == "Перестань", state=[
+                    FilterBotStates.MorphManagment.morphling_working,
+                    FilterBotStates.MorphManagment.border_working,
+                    FilterBotStates.MorphManagment.mosaic_working
+                    ])
+async def reset(message: types.Message):
+    await FilterBotStates.ImageDownload.download_done.set()
+    await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
+
+
 # Обрабатываем выбор одного из семейства фильтров morph
 @dp.message_handler(state=FilterBotStates.Filters.morph_choosing_working)
 async def morph_settings_choosing(message: types.Message):
@@ -230,24 +245,13 @@ async def morph_settings_choosing(message: types.Message):
                                     "kus", morph_markup)
 
 
-# Останавливаем принятие запросов значений параметров для работы фильтров morph
-@dp.message_handler(lambda message: message.text == "Перестань", state=[
-                    FilterBotStates.MorphManagment.morphling_working,
-                    FilterBotStates.MorphManagment.border_working,
-                    FilterBotStates.MorphManagment.mosaic_working
-                    ])
-async def reset(message: types.Message):
-    await FilterBotStates.ImageDownload.download_done.set()
-    await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
-
-
 # Обрабатываем заданные параметры для работы фильтров morph
 @dp.message_handler(state=[
                     FilterBotStates.MorphManagment.morphling_working,
                     FilterBotStates.MorphManagment.border_working,
                     FilterBotStates.MorphManagment.mosaic_working
                     ])
-async def morph_settings_choosing(message: types.Message, state: FSMContext):
+async def morph_processing(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     current_state = str(current_state)
     if current_state == "MorphManagment:mosaic_working":
@@ -258,7 +262,6 @@ async def morph_settings_choosing(message: types.Message, state: FSMContext):
                                         "Ты неправильно меня понял, попробуй ещё раз", "kus",
                                         morph_set_prof_markup)
         else:
-            await FilterBotStates.MorphManagment.mosaic_working.set()
             try:
                 src_img_path = create_save_path(message, "source")
                 img_path = create_save_path(message, "mosaic")
@@ -268,6 +271,7 @@ async def morph_settings_choosing(message: types.Message, state: FSMContext):
                 img_res = filters.Mosaic_Filter(img, parametrs[0], parametrs[1])
                 if not imwrite(img_path, img_res):
                     raise ImwriteError
+                await FilterBotStates.MorphManagment.mosaic_working.set()
                 await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
             except ImreadError:
                 await FilterBotStates.ImageDownload.download_done.set()
@@ -283,7 +287,6 @@ async def morph_settings_choosing(message: types.Message, state: FSMContext):
                                         "Ты неправильно меня понял, попробуй ещё раз", "kus",
                                         morph_set_prof_markup)
         else:
-            await FilterBotStates.MorphManagment.border_working.set()
             try:
                 src_img_path = create_save_path(message, "source")
                 img_path = create_save_path(message, "border")
@@ -293,6 +296,7 @@ async def morph_settings_choosing(message: types.Message, state: FSMContext):
                 img_res = filters.Border_Filter(img, parametrs[0], parametrs[1])
                 if not imwrite(img_path, img_res):
                     raise ImwriteError
+                await FilterBotStates.MorphManagment.border_working.set()
                 await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
             except ImreadError:
                 await FilterBotStates.ImageDownload.download_done.set()
@@ -308,7 +312,6 @@ async def morph_settings_choosing(message: types.Message, state: FSMContext):
                                         "Ты неправильно меня понял, попробуй ещё раз", "kus",
                                         morph_set_prof_markup)
         else:
-            await FilterBotStates.MorphManagment.morphling_working.set()
             try:
                 src_img_path = create_save_path(message, "source")
                 img_path = create_save_path(message, "morphling")
@@ -318,6 +321,7 @@ async def morph_settings_choosing(message: types.Message, state: FSMContext):
                 img_res = filters.Morphling_Filter(img, parametrs[0], parametrs[1])
                 if not imwrite(img_path, img_res):
                     raise ImwriteError
+                await FilterBotStates.MorphManagment.morphling_working.set()
                 await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
             except ImreadError:
                 await FilterBotStates.ImageDownload.download_done.set()
@@ -391,56 +395,63 @@ async def Color_Range(message: types.Message):
 @dp.message_handler(lambda message: message.text == "Гамма Фильтр",
                     state=FilterBotStates.ImageDownload.download_done)
 async def filter_gamma(message: types.Message):
-    await FilterBotStates.Filters.gamma_working.set()
-    tokens["flag"] = 0
-    if not os.path.exists(create_save_path(message, "gamma")):
-        await send_img_text_sticker(message, None, "Тебе подсказать значение гамма, милашка?", "mayi", baby_help_markup)
-    else:
-        await send_img_text_sticker(message, None, "Введи свое значение гамма, сладкий", "giveme", baby_enough_markup)
+    await FilterBotStates.Gamma_filter.gamma_start.set()
+    await send_img_text_sticker(message, None, "Введи свое значение гамма, сладкий", "giveme", baby_help_markup)
+
+
+# Останавливаем принятие запросов значений параметров для работы фильтра gamma
+@dp.message_handler(lambda message: message.text == "Перестань", state=[
+                    FilterBotStates.Gamma_filter.gamma_start,
+                    FilterBotStates.Gamma_filter.gamma_1])
+async def reset(message: types.Message):
+    await FilterBotStates.ImageDownload.download_done.set()
+    await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
 
 
 # Обрабатываем задачу параметров для gamma_filter
-@dp.message_handler(state=FilterBotStates.Filters.gamma_working)
-async def Gamma_Function(message):
-    if message.text == 'Перестань':
-        await FilterBotStates.ImageDownload.download_done.set()
-        await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
+@dp.message_handler(state=[
+                    FilterBotStates.Gamma_filter.gamma_start,
+                    FilterBotStates.Gamma_filter.gamma_1])
+async def Gamma_Function(message, state: FSMContext):
+    current_state = await state.get_state()
+    current_state = str(current_state)
+    try:
+        gamma_value = filters.Gamma_Num((message.text + ' ')[: message.text.find(' ')])
+        if gamma_value == 0.0:
+            raise Zero_Error
+    except Exception as e:
+        if current_state == "Gamma_filter:gamma_start":
+            await FilterBotStates.Gamma_filter.gamma_1.set()
+            if str(type(e)) == "<class 'exceptions.Zero_Error'>":
+                await send_img_text_sticker(message, None, "Ага, ноль, хорошо ты придумал..", "he", baby_help_markup)
+            else:
+                await send_img_text_sticker(message, None, "Гамма это просто число!", "kus", baby_help_markup)
+        elif current_state == "Gamma_filter:gamma_1":
+            await FilterBotStates.ImageDownload.download_done.set()
+            await send_img_text_sticker(message, None, "Издеваешься, да?", "cry", filters_markup)
     else:
         try:
-            gamma = filters.Gamma_Num((message.text + ' ')[: message.text.find(' ')])
-        except:
-            tokens["flag"] += 1
-            if tokens["flag"] == 1:
-                await send_img_text_sticker(message, None, "Гамма это просто число!", "kus", baby_help_markup)
-            elif tokens["flag"] == 2:
-                await FilterBotStates.ImageDownload.download_done.set()
-                await send_img_text_sticker(message, None, "Издеваешься, да?", "cry", filters_markup)
-        else:
-            tokens['flag'] = 0
-
-        if tokens["flag"] == 0:
-            try:
-                if not os.path.exists(create_save_path(message, "gamma")):
-                    src_img_path = create_save_path(message, "source")
-                else:
-                    src_img_path = create_save_path(message, "gamma")
-                img_path = create_save_path(message, "gamma")
-                img = imread(src_img_path)
-                if img is None:
-                    raise ImreadError
-                img_res = filters.Gamma_Filter(img, gamma)
-                if not imwrite(img_path, img_res):
-                    raise ImwriteError
-                await FilterBotStates.ImageDownload.download_done.set()
-                await send_img_text_sticker(message, img_path, "О да, я даже не ожидала, что так хорошо получится",
-                                            "thatsgood",
-                                            filters_markup)
-            except ImreadError:
-                await FilterBotStates.ImageDownload.download_done.set()
-                await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
-            except ImwriteError:
-                await FilterBotStates.ImageDownload.download_done.set()
-                await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
+            if not os.path.exists(create_save_path(message, "gamma")):
+                src_img_path = create_save_path(message, "source")
+            else:
+                src_img_path = create_save_path(message, "gamma")
+            img_path = create_save_path(message, "gamma")
+            img = imread(src_img_path)
+            if img is None:
+                raise ImreadError
+            img_res = filters.Gamma_Filter(img, gamma_value)
+            if not imwrite(img_path, img_res):
+                raise ImwriteError
+            await FilterBotStates.Gamma_filter.gamma_start.set()
+            await send_img_text_sticker(message, img_path, "О да, я даже не ожидала, что так хорошо получится",
+                                        "thatsgood",
+                                        baby_help_markup)
+        except ImreadError:
+            await FilterBotStates.ImageDownload.download_done.set()
+            await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
+        except ImwriteError:
+            await FilterBotStates.ImageDownload.download_done.set()
+            await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
 
 
 # Обрабатываем запрос "Средний сдвиг"
@@ -472,7 +483,7 @@ async def filter_meanshift(message: types.Message):
 # Обрабатываем сообщение "Пикселизация"
 @dp.message_handler(lambda message: message.text == "Пикселизация",
                     state=FilterBotStates.ImageDownload.download_done)
-async def colors(message: types.Message):
+async def params(message: types.Message):
     await FilterBotStates.Filters.pixel_working.set()
     await send_img_text_sticker(message, None, "Подрегулируй уровень пикселизации", "mayi", pixel_markup)
 
@@ -511,7 +522,7 @@ async def filter_pixel(message: types.Message):
 
 # Обрабатываем сообщение "Выделить границы"
 @dp.message_handler(lambda message: message.text == "Выделить границы", state=FilterBotStates.ImageDownload.download_done)
-async def filter_gray_scale(message: types.Message):
+async def filter_sobel(message: types.Message):
     try:
         if not os.path.exists(create_save_path(message, "sobel")):
             src_img_path = create_save_path(message, "source")

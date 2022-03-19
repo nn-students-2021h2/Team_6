@@ -13,9 +13,13 @@ class ImageDownload(StatesGroup):
 
 class Filters(StatesGroup):
     color_range_working = State()
-    gamma_working = State()
     morph_choosing_working = State()
     pixel_working = State()
+
+
+class Gamma_filter(StatesGroup):
+    gamma_start = State()
+    gamma_1 = State()
 
 
 class MorphManagment(StatesGroup):

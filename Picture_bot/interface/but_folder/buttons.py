@@ -24,7 +24,14 @@ button_tired = types.KeyboardButton("Я устал")
 # for gamma filter work
 button_dark = types.KeyboardButton("0.5 Немного затемнить")
 button_light = types.KeyboardButton("1.5 Немного осветлить")
-button_enough = types.KeyboardButton("Перестань (reset brightnes)")
+button_enough = types.KeyboardButton("Перестань")
+
+# for pixel filter
+button_2 = types.KeyboardButton("2")
+button_4 = types.KeyboardButton("4")
+button_8 = types.KeyboardButton("8")
+button_16 = types.KeyboardButton("16")
+button_32 = types.KeyboardButton("32")
 
 # for colour list
 button_green = types.KeyboardButton("Зелёный")

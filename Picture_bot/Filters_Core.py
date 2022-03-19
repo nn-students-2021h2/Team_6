@@ -57,6 +57,14 @@ def param(message, type):
     return parametrs
 
 
+def cut_param(message):
+    cut = int(message)
+    if cut == 2 or cut == 4 or cut == 8 or cut == 16 or cut == 32:
+        return cut
+    else:
+        raise
+
+
 def Gamma_Filter(img, gamma: float):
     invGamma = 1.0 / gamma
     table = np.array([((i / 255.0) ** invGamma) * 255
@@ -64,9 +72,9 @@ def Gamma_Filter(img, gamma: float):
     return cv2.LUT(img, table)
 
 
-def Pixel_Filter(img):
+def Pixel_Filter(img, cut=4):
     orig_height, orig_width = img.shape[:2]
-    small_height, small_width = orig_height // 4, orig_width // 4
+    small_height, small_width = orig_height // cut, orig_width // cut
     img_res = cv2.resize(img, (small_width, small_height), interpolation=cv2.INTER_LINEAR)
     data = img_res.reshape((-1, 3))
     data = np.float32(data)
@@ -98,8 +106,7 @@ def Morph_Filter(img, mode, arr_size):
 
 def Border_Filter(img, arr_size, degree):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (arr_size, arr_size))
-    img_res = cv2.morphologyEx(img, cv2.MORPH_BLACKHAT, kernel, iterations=degree)
-    img_res = cv2.morphologyEx(img_res, cv2.MORPH_TOPHAT, kernel, iterations=1)
+    img_res = cv2.morphologyEx(img, cv2.MORPH_GRADIENT, kernel, iterations=degree)
     img_res = cv2.cvtColor(img_res, cv2.COLOR_BGR2GRAY)
     return img_res
 
@@ -123,9 +130,9 @@ def Cartoon_Filter(img, batch_size=4):
 
 
 if __name__ == '__main__':
-    img = cv2.imread('C:/PNGLIVE/test4.jpg')
+    img = cv2.imread('C:/PNGLIVE/test1.jpg')
     cv2.imshow('image1', img)
-    cv2.imshow('image2', Morph_Filter(img, 8, 3))
+    cv2.imshow('image2', Morphling_Filter(img, 27, 2))
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 

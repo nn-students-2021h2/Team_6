@@ -462,26 +462,39 @@ async def filter_meanshift(message: types.Message):
 
 @dp.message_handler(lambda message: message.text == "Пикселизация",
                     state=FilterBotStates.ImageDownload.download_done)
+async def colors(message: types.Message):
+    await FilterBotStates.Filters.pixel_working.set()
+    await send_img_text_sticker(message, None, "Подрегулируй уровень пикселизации", "mayi", pixel_markup)
+
+
+@dp.message_handler(lambda message: message.text == "Перестань", state=FilterBotStates.Filters.pixel_working)
+async def reset(message: types.Message):
+    await FilterBotStates.ImageDownload.download_done.set()
+    await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
+
+
+@dp.message_handler(state=FilterBotStates.Filters.pixel_working)
 async def filter_pixel(message: types.Message):
-    if not os.path.exists(create_save_path(message, "pixel")):
-        src_img_path = create_save_path(message, "source")
-        img_path = create_save_path(message, "pixel")
-        try:
-            img = imread(src_img_path)
-            if img is None:
-                raise ImreadError
-            img_res = filters.Pixel_Filter(img)
-            if not imwrite(img_path, img_res):
-                raise ImwriteError
-            await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
-        except ImreadError:
-            await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
-        except ImwriteError:
-            await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
-    else:
-        img_path = create_save_path(message, "pixel")
-        await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?",
-                                    "iamnotarobot")
+    try:
+        parametrs = filters.cut_param(message.text)
+    except:
+        await send_img_text_sticker(message, None,
+                                    "Для кого я кнопки отправляла?", "kus",
+                                    pixel_markup)
+    src_img_path = create_save_path(message, "source")
+    img_path = create_save_path(message, "pixel")
+    try:
+        img = imread(src_img_path)
+        if img is None:
+            raise ImreadError
+        img_res = filters.Pixel_Filter(img, parametrs)
+        if not imwrite(img_path, img_res):
+            raise ImwriteError
+        await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
+    except ImreadError:
+        await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
+    except ImwriteError:
+        await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
 
 
 @dp.message_handler(lambda message: message.text == "Я устал",

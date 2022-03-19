@@ -4,7 +4,6 @@ from transliterate import translit
 import asyncio
 import logging
 from aiogram import Bot, Dispatcher, executor
-# from aiogram.utils.exceptions import BotBlocked
 import aiogram.utils.markdown as fmt
 from requests import get
 from aiogram.dispatcher import FSMContext
@@ -197,13 +196,7 @@ async def filter_gray_scale(message: types.Message):
         await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
 
 
-@dp.message_handler(lambda message: message.text == "Цветовой диапазон",
-                    state=FilterBotStates.ImageDownload.download_done)
-async def colors(message: types.Message):
-    await FilterBotStates.Filters.color_range_working.set()
-    await send_img_text_sticker(message, None, "Введи один из цветов радуги, дорогуша", "mayi", colors_markup)
-
-
+# Обрабатываем запрос "Морфология"
 @dp.message_handler(lambda message: message.text == "Морфология",
                     state=FilterBotStates.ImageDownload.download_done)
 async def morph_choosing(message: types.Message):
@@ -211,6 +204,7 @@ async def morph_choosing(message: types.Message):
     await send_img_text_sticker(message, None, "А какой именно тебя интересует?", "mayi", morph_markup)
 
 
+# Обрабатываем выбор одного из семейства фильтров morph
 @dp.message_handler(state=FilterBotStates.Filters.morph_choosing_working)
 async def morph_settings_choosing(message: types.Message):
     if message.text == "Мозайка":
@@ -236,6 +230,7 @@ async def morph_settings_choosing(message: types.Message):
                                     "kus", morph_markup)
 
 
+# Останавливаем принятие запросов значений параметров для работы фильтров morph
 @dp.message_handler(lambda message: message.text == "Перестань", state=[
                     FilterBotStates.MorphManagment.morphling_working,
                     FilterBotStates.MorphManagment.border_working,
@@ -246,6 +241,7 @@ async def reset(message: types.Message):
     await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
 
 
+# Обрабатываем заданные параметры для работы фильтров morph
 @dp.message_handler(state=[
                     FilterBotStates.MorphManagment.morphling_working,
                     FilterBotStates.MorphManagment.border_working,
@@ -331,6 +327,7 @@ async def morph_settings_choosing(message: types.Message, state: FSMContext):
                 await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
 
 
+# Обрабатываем запрос "Мультиколизация"
 @dp.message_handler(lambda message: message.text == "Мультиколизация",
                     state=FilterBotStates.ImageDownload.download_done)
 async def filter_cartoon(message: types.Message):
@@ -355,6 +352,15 @@ async def filter_cartoon(message: types.Message):
         await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
 
 
+# Обрабатываем запрос "Цветовой диапазон"
+@dp.message_handler(lambda message: message.text == "Цветовой диапазон",
+                    state=FilterBotStates.ImageDownload.download_done)
+async def colors(message: types.Message):
+    await FilterBotStates.Filters.color_range_working.set()
+    await send_img_text_sticker(message, None, "Введи один из цветов радуги, дорогуша", "mayi", colors_markup)
+
+
+# Обрабатываем запрос с цветом на работу фильтра "Цветовой диапазон"
 @dp.message_handler(state=FilterBotStates.Filters.color_range_working)
 async def Color_Range(message: types.Message):
     try:
@@ -381,6 +387,7 @@ async def Color_Range(message: types.Message):
         await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
 
 
+# Обрабатываем запрос "Гамма Фильтр"
 @dp.message_handler(lambda message: message.text == "Гамма Фильтр",
                     state=FilterBotStates.ImageDownload.download_done)
 async def filter_gamma(message: types.Message):
@@ -392,6 +399,7 @@ async def filter_gamma(message: types.Message):
         await send_img_text_sticker(message, None, "Введи свое значение гамма, сладкий", "giveme", baby_enough_markup)
 
 
+# Обрабатываем задачу параметров для gamma_filter
 @dp.message_handler(state=FilterBotStates.Filters.gamma_working)
 async def Gamma_Function(message):
     if message.text == 'Перестань':
@@ -400,7 +408,7 @@ async def Gamma_Function(message):
     else:
         try:
             gamma = filters.Gamma_Num((message.text + ' ')[: message.text.find(' ')])
-        except:  # какая ошибка
+        except:
             tokens["flag"] += 1
             if tokens["flag"] == 1:
                 await send_img_text_sticker(message, None, "Гамма это просто число!", "kus", baby_help_markup)
@@ -435,6 +443,7 @@ async def Gamma_Function(message):
                 await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
 
 
+# Обрабатываем запрос "Средний сдвиг"
 @dp.message_handler(lambda message: message.text == "Средний сдвиг",
                     state=FilterBotStates.ImageDownload.download_done)
 async def filter_meanshift(message: types.Message):
@@ -460,6 +469,7 @@ async def filter_meanshift(message: types.Message):
                                     "tired")
 
 
+# Обрабатываем сообщение "Пикселизация"
 @dp.message_handler(lambda message: message.text == "Пикселизация",
                     state=FilterBotStates.ImageDownload.download_done)
 async def colors(message: types.Message):
@@ -467,12 +477,14 @@ async def colors(message: types.Message):
     await send_img_text_sticker(message, None, "Подрегулируй уровень пикселизации", "mayi", pixel_markup)
 
 
+# Останавливаем принятие запросов значений параметров для работы фильтров pixel
 @dp.message_handler(lambda message: message.text == "Перестань", state=FilterBotStates.Filters.pixel_working)
 async def reset(message: types.Message):
     await FilterBotStates.ImageDownload.download_done.set()
     await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
 
 
+# Обрабатываем задачу параметров для pixel_filter
 @dp.message_handler(state=FilterBotStates.Filters.pixel_working)
 async def filter_pixel(message: types.Message):
     try:
@@ -497,6 +509,31 @@ async def filter_pixel(message: types.Message):
         await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
 
 
+# Обрабатываем сообщение "Выделить границы"
+@dp.message_handler(lambda message: message.text == "Выделить границы", state=FilterBotStates.ImageDownload.download_done)
+async def filter_gray_scale(message: types.Message):
+    try:
+        if not os.path.exists(create_save_path(message, "sobel")):
+            src_img_path = create_save_path(message, "source")
+            img_path = create_save_path(message, "sobel")
+            img = imread(src_img_path)
+            if img is None:
+                raise ImreadError
+            img_res = filters.Sobel_Filter(img)
+            if not imwrite(img_path, img_res):
+                raise ImwriteError
+            await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
+        else:
+            img_path = create_save_path(message, "sobel")
+            await send_img_text_sticker(message, img_path, "Я что тебе робот туда сюда ее преобразовывать?",
+                                        "iamnotarobot")
+    except ImreadError:
+        await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
+    except ImwriteError:
+        await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
+
+
+# Сбрасываем состояние до стартового
 @dp.message_handler(lambda message: message.text == "Я устал",
                     state=FilterBotStates.ImageDownload.download_done)
 async def image_processing(message: types.Message):
@@ -505,17 +542,20 @@ async def image_processing(message: types.Message):
                                 start_markup)
 
 
+# Обрабатвыем гифку и переотправляем
 @dp.message_handler(content_types=[types.ContentType.ANIMATION])
 async def echo_document(message: types.Message):
     await message.reply_animation(message.animation.file_id)
 
 
+# Если ничего из вышеперечисленного не сработало
 @dp.message_handler(state="*")
 async def echo_message(message):
     await send_img_text_sticker(message, None,
                                 f"Я не знаю что ответить 😢\n"
                                 f"Доступные команды: \n/start - полная перезагрузка \n"
                                 f"/help - информация о достурных фильтрах", "noanswer", start_markup)
+
 
 if __name__ == "__main__":
     # Запуск бота

@@ -19,6 +19,7 @@ button_mosaic = types.KeyboardButton("Мозайка")
 button_morphling = types.KeyboardButton("Морфлинг")
 button_morph_set_prof = types.KeyboardButton("Поработай")
 button_morph = types.KeyboardButton("Морфология")
+button_sobel = types.KeyboardButton("Выделить границы")
 button_tired = types.KeyboardButton("Я устал")
 
 # for gamma filter work

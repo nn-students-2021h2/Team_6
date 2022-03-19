@@ -15,6 +15,7 @@ class Filters(StatesGroup):
     color_range_working = State()
     gamma_working = State()
     morph_choosing_working = State()
+    pixel_working = State()
 
 
 class MorphManagment(StatesGroup):

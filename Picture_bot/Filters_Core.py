@@ -42,7 +42,7 @@ def Gamma_Num(num):
 def param(message, type):
     if "Поработай" in message:
         if type == 'mosaic':
-            return [7, 3]
+            return [9, 3]
         elif type == 'border':
             return [7, 12]
         else:
@@ -107,6 +107,15 @@ def Morph_Filter(img, mode, arr_size):
 def Border_Filter(img, arr_size, degree):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (arr_size, arr_size))
     img_res = cv2.morphologyEx(img, cv2.MORPH_GRADIENT, kernel, iterations=degree)
+    return img_res
+
+
+def Sobel_Filter(img):
+    x = cv2.Sobel(img, cv2.CV_16S, 1, 0)
+    y = cv2.Sobel(img, cv2.CV_16S, 0, 1)
+    absX = cv2.convertScaleAbs(x)  # Перенести обратно на uint8
+    absY = cv2.convertScaleAbs(y)  # Перенести обратно на uint8
+    img_res = cv2.addWeighted(absX, 0.5, absY, 0.5, 0)
     img_res = cv2.cvtColor(img_res, cv2.COLOR_BGR2GRAY)
     return img_res
 
@@ -130,9 +139,9 @@ def Cartoon_Filter(img, batch_size=4):
 
 
 if __name__ == '__main__':
-    img = cv2.imread('C:/PNGLIVE/test1.jpg')
+    img = cv2.imread('C:/PNGLIVE/test4.jpg')
     cv2.imshow('image1', img)
-    cv2.imshow('image2', Morphling_Filter(img, 27, 2))
+    cv2.imshow('image2', Morphling_Filter(img, 7, 6))
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 

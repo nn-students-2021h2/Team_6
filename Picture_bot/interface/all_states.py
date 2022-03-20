@@ -23,6 +23,6 @@ class Gamma_filter(StatesGroup):
 
 
 class MorphManagment(StatesGroup):
-    morphling_working = State()
-    mosaic_working = State()
-    border_working = State()
+    blackhat_working = State()
+    open_working = State()
+    grad_working = State()

@@ -21,7 +21,7 @@ def Gray_Filter(img):
 
 
 def Mean_Shift_Filter(img):
-    return cv2.pyrMeanShiftFiltering(img, 15, 50, 1)
+    return cv2.pyrMeanShiftFiltering(img, 15, 50, None, 1)
 
 
 def Color_Range_Filter(img, color: str):
@@ -41,12 +41,12 @@ def Gamma_Num(num):
 
 def param(message, type):
     if "Поработай" in message:
-        if type == 'mosaic':
+        if type == 'blur':
             return [9, 3]
         elif type == 'border':
-            return [7, 12]
+            return [7, 2]
         else:
-            return [7, 5]
+            return [7, 20]
 
     parametrs = message.split(' ')
     if len(parametrs) != 2:
@@ -104,9 +104,10 @@ def Morph_Filter(img, mode, arr_size):
     return img_res
 
 
-def Border_Filter(img, arr_size, degree):
+def Grad_Filter(img, arr_size, degree):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (arr_size, arr_size))
     img_res = cv2.morphologyEx(img, cv2.MORPH_GRADIENT, kernel, iterations=degree)
+    img_res = Negative_Filter(img_res)
     return img_res
 
 
@@ -120,14 +121,14 @@ def Sobel_Filter(img):
     return img_res
 
 
-def Morphling_Filter(img, arr_size, degree):
+def Blackhat_Filter(img, arr_size, degree):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (arr_size, arr_size))
     img_res = cv2.morphologyEx(img, cv2.MORPH_BLACKHAT, kernel, iterations=degree)
 
     return img_res
 
 
-def Mosaic_Filter(img, arr_size, degree):
+def Open_Filter(img, arr_size, degree):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (arr_size, arr_size))
     img_res = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel, iterations=degree)
 
@@ -141,7 +142,7 @@ def Cartoon_Filter(img, batch_size=4):
 if __name__ == '__main__':
     img = cv2.imread('C:/PNGLIVE/test4.jpg')
     cv2.imshow('image1', img)
-    cv2.imshow('image2', Morphling_Filter(img, 7, 6))
+    cv2.imshow('image2', Border_Filter(img, 7, 2))
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 

@@ -1,10 +1,10 @@
 import os
 from cv2 import imread, imwrite
 from transliterate import translit
-import asyncio
+# import asyncio
 import logging
 from aiogram import Bot, Dispatcher, executor
-import aiogram.utils.markdown as fmt
+# import aiogram.utils.markdown as fmt
 from requests import get
 from aiogram.dispatcher import FSMContext
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -69,18 +69,20 @@ async def start_message(message: types.Message):
 @dp.message_handler(commands="help", state="*")
 async def help_message(message: types.Message):
     await FilterBotStates.StartManagment.ice_cream_not_done.set()
-    await send_img_text_sticker(message, None, 
-                                f"Давай-ка я подскажу тебе по поводу фильтров..\n"
-                                f"<b>Негатив</b> - самый простой, значения каналов цвета меняются на противоположные\n"
-                                f"<b>Гамма-фильтр</b> - чуть посложнее, в зависимости от коэффициента гамма меняется интенсивность(яркость) изображения\
-                                посветлее, потемнее, всё такое..\n"
-                                f"<b>Чёрно-белый</b> - ну туть всё понятно, находим интенсивность картинки и скалируем ее в оттенках от черного до белого цветов\n"
-                                f"<b>Средний сдвиг</b> - скажу по-научному, он заменяет каждый пиксель средним значением пикселей в своей окрестности матрицы радиуса r 🧐\в общем гладит фото\n"
-                                f"Ты еще не уснул? Оу, нет.. Ладно тогда продолжим\n"
-                                f"<b>Цветовой диапазон</b> - да тут легко, эта штука выделяет диапазон цветов, который ты прикажешь\
-                                и на картинке красит его в белый. Преобразовывем картинку в формат HSV (ну ты знаешь),\
-                                создаём HSV массивы от минимума нашего оттенка цвета до максимума, ну а дальше всё понятно,\
-                                это простейшая реализация, многого от нее не ожидай 🙄\n", "stupid", reply_markup=start_markup)
+    await send_img_text_sticker(message, None,
+                                "Давай-ка я подскажу тебе по поводу фильтров..\n" + \
+                                "<b>Негатив</b> - самый простой, значения каналов цвета меняются на противоположные\n" + \
+                                "<b>Гамма-фильтр</b> - в зависимости от коэффициента гамма меняется интенсивность " + \
+                                "(яркость) изображения " + \
+                                "посветлее, потемнее, всё такое..\n" + \
+                                "<b>Чёрно-белый</b> - черного-белое изображение\n" + \
+                                "<b>Средний сдвиг</b> - скажу по-научному, он заменяет каждый пиксель средним " + \
+                                "значением пикселей в своей окрестности матрицы радиуса r 🧐." + \
+                                "В общем сглаживает фото\n" + \
+                                "<b>Цветовой диапазон</b> - да тут легко, эта штука выделяет диапазон цветов, " + \
+                                "который ты прикажешь " + \
+                                "и на картинке красит его в белый. Многого от нее не ожидай, это же альфа-версия 🙄\n",
+                                "stupid", reply_markup=start_markup)
 
 
 @dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку",
@@ -93,7 +95,7 @@ async def wanted_icecream_first_time(message: types.Message):
 @dp.message_handler(lambda message: message.text == "🍧 Хочу мороженку",
                     state=FilterBotStates.StartManagment.ice_cream_done)
 async def wanted_icecream_other_time(message: types.Message):
-    await send_img_text_sticker(message, url_img, "Думаешь что-то изменилось, пупсик ?", "he", start_markup)
+    await send_img_text_sticker(message, url_img, "Думаешь что-то изменилось, пупсик?", "he", start_markup)
 
 
 @dp.message_handler(lambda message: message.text == "🎨 Мне нужно обработать изображение",
@@ -101,7 +103,6 @@ async def wanted_icecream_other_time(message: types.Message):
 async def image_processing(message: types.Message):
     await FilterBotStates.ImageDownload.download_not_complete.set()
     await send_img_text_sticker(message, None, "Ну давай, кинь свою картинку", "giveme", filters_markup)
-
 
 
 # Не принимаем на обработку изображения, когда находимся в неправильном состоянии
@@ -120,13 +121,14 @@ async def download_photo(message: types.Message):
     try:
         await message.photo[-1].download(destination=src)
     except:
-        await send_img_text_sticker(message, None, "У меня не получилось загрузить \
-        изображение, ты был слишком резок.. \n Попробуй другое 😟",
+        await send_img_text_sticker(message, None, "У меня не получилось загрузить" + \
+        "изображение, ты был слишком резок.. \n Попробуй другое 😟",
                                     "cry", None)
     else:
         await FilterBotStates.ImageDownload.download_done.set()
-        filters_to_clear = ["negative", "gray", "mean_shift", "pixel", "cartoon", "gamma", "morphling", "mosaic",
-                            "border", "sobel"]
+        filters_to_clear = [
+            "negative", "gray", "mean_shift", "color_range", "pixel", "cartoon", "gamma", "open",
+            "open", "grad", "sobel"]
         for clear_degit in filters_to_clear:
             if os.path.exists(create_save_path(message, clear_degit)):
                 os.remove(create_save_path(message, clear_degit))
@@ -139,7 +141,7 @@ async def download_photo(message: types.Message):
                     state=FilterBotStates.ImageDownload.download_done)
 async def get_source(message: types.Message):
     img_path = create_save_path(message, "source")
-    await send_img_text_sticker(message, img_path, "С такого ракурса стало только хуже XD", "haha", None)
+    await send_img_text_sticker(message, img_path, "С такого ракурса стало только хуже)", "haha", None)
 
 
 # Обрабатываем сообщение "Негатив" и высылаем негативное изображение
@@ -203,29 +205,23 @@ async def morph_choosing(message: types.Message):
 @dp.message_handler(lambda message: message.text == "Перестань", state=FilterBotStates.MorphManagment.states)
 async def reset(message: types.Message):
     await FilterBotStates.ImageDownload.download_done.set()
-    await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
+    await send_img_text_sticker(message, None, "Ладно, ладно. Что ты так завёлся", "evil", filters_markup)
 
 
 # Обрабатываем выбор одного из семейства фильтров morph
 @dp.message_handler(state=FilterBotStates.Filters.morph_choosing_working)
 async def morph_settings_choosing(message: types.Message):
-    if message.text == "Мозайка":
-        await FilterBotStates.MorphManagment.mosaic_working.set()
+    if message.text in ["Открытие", "Черная шляпа", "Градиент"]:
+        if message.text == "Открытие":
+            await FilterBotStates.MorphManagment.open_working.set()
+        elif message.text == "Градиент":
+            await FilterBotStates.MorphManagment.grad_working.set()
+        else:
+            await FilterBotStates.MorphManagment.blackhat_working.set()
         await send_img_text_sticker(message, None,
-                                    "С каким ядром и сколько раз ты хочешь применить эту морфологию?\n'Нечетное число'\
-                                    \'Любое число от единицы'\nНу или доверься профессионалу и нажми на кнопку", "mayi",
-                                    morph_set_prof_markup)
-    elif message.text == "Поработаем с границами":
-        await FilterBotStates.MorphManagment.border_working.set()
-        await send_img_text_sticker(message, None,
-                                    "С каким ядром и сколько раз ты хочешь применить эту морфологию?\n'Нечетное число'\
-                                    \'Любое число от единицы'\nНу или доверься профессионалу и нажми на кнопку", "mayi",
-                                    morph_set_prof_markup)
-    elif message.text == "Морфлинг":
-        await FilterBotStates.MorphManagment.morphling_working.set()
-        await send_img_text_sticker(message, None,
-                                    "С каким ядром и сколько раз ты хочешь применить эту морфологию?\n'Нечетное число' \
-                                    \'Любое число от единицы'\nНу или доверься профессионалу и нажми на кнопку", "mayi",
+                                    "С каким ядром и сколько раз ты хочешь применить эту морфологию?\n" + \
+                                    "'Нечетное число + любое число: от единицы до ста', например, вот так: 7 8\n" + \
+                                    "Ну или доверься профессионалу и нажми на кнопку 'поработай'", "mayi",
                                     morph_set_prof_markup)
     else:
         await send_img_text_sticker(message, None, "Я такого не знаю, повтори-ка",
@@ -237,9 +233,9 @@ async def morph_settings_choosing(message: types.Message):
 async def morph_processing(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     current_state = str(current_state)
-    if current_state == "MorphManagment:mosaic_working":
+    if current_state == "MorphManagment:open_working":
         try:
-            parametrs = filters.param(message.text, 'mosaic')
+            parametrs = filters.param(message.text, 'open')
         except:
             await send_img_text_sticker(message, None,
                                         "Ты неправильно меня понял, попробуй ещё раз", "kus",
@@ -247,14 +243,14 @@ async def morph_processing(message: types.Message, state: FSMContext):
         else:
             try:
                 src_img_path = create_save_path(message, "source")
-                img_path = create_save_path(message, "mosaic")
+                img_path = create_save_path(message, "open")
                 img = imread(src_img_path)
                 if img is None:
                     raise ImreadError
-                img_res = filters.Mosaic_Filter(img, parametrs[0], parametrs[1])
+                img_res = filters.Open_Filter(img, parametrs[0], parametrs[1])
                 if not imwrite(img_path, img_res):
                     raise ImwriteError
-                await FilterBotStates.MorphManagment.mosaic_working.set()
+                await FilterBotStates.MorphManagment.open_working.set()
                 await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
             except ImreadError:
                 await FilterBotStates.ImageDownload.download_done.set()
@@ -262,9 +258,9 @@ async def morph_processing(message: types.Message, state: FSMContext):
             except ImwriteError:
                 await FilterBotStates.ImageDownload.download_done.set()
                 await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
-    elif current_state == "MorphManagment:border_working":
+    elif current_state == "MorphManagment:grad_working":
         try:
-            parametrs = filters.param(message.text, 'border')
+            parametrs = filters.param(message.text, 'grad')
         except:
             await send_img_text_sticker(message, None,
                                         "Ты неправильно меня понял, попробуй ещё раз", "kus",
@@ -272,14 +268,14 @@ async def morph_processing(message: types.Message, state: FSMContext):
         else:
             try:
                 src_img_path = create_save_path(message, "source")
-                img_path = create_save_path(message, "border")
+                img_path = create_save_path(message, "grad")
                 img = imread(src_img_path)
                 if img is None:
                     raise ImreadError
-                img_res = filters.Border_Filter(img, parametrs[0], parametrs[1])
+                img_res = filters.Grad_Filter(img, parametrs[0], parametrs[1])
                 if not imwrite(img_path, img_res):
                     raise ImwriteError
-                await FilterBotStates.MorphManagment.border_working.set()
+                await FilterBotStates.MorphManagment.grad_working.set()
                 await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
             except ImreadError:
                 await FilterBotStates.ImageDownload.download_done.set()
@@ -289,7 +285,7 @@ async def morph_processing(message: types.Message, state: FSMContext):
                 await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
     else:
         try:
-            parametrs = filters.param(message.text, 'morphling')
+            parametrs = filters.param(message.text, 'blackhat')
         except:
             await send_img_text_sticker(message, None,
                                         "Ты неправильно меня понял, попробуй ещё раз", "kus",
@@ -297,14 +293,14 @@ async def morph_processing(message: types.Message, state: FSMContext):
         else:
             try:
                 src_img_path = create_save_path(message, "source")
-                img_path = create_save_path(message, "morphling")
+                img_path = create_save_path(message, "blackhat")
                 img = imread(src_img_path)
                 if img is None:
                     raise ImreadError
-                img_res = filters.Morphling_Filter(img, parametrs[0], parametrs[1])
+                img_res = filters.Blackhat_Filter(img, parametrs[0], parametrs[1])
                 if not imwrite(img_path, img_res):
                     raise ImwriteError
-                await FilterBotStates.MorphManagment.morphling_working.set()
+                await FilterBotStates.MorphManagment.blackhat_working.set()
                 await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
             except ImreadError:
                 await FilterBotStates.ImageDownload.download_done.set()
@@ -385,7 +381,7 @@ async def filter_gamma(message: types.Message):
 @dp.message_handler(lambda message: message.text == "Перестань", state=FilterBotStates.Gamma_filter.states)
 async def reset(message: types.Message):
     await FilterBotStates.ImageDownload.download_done.set()
-    await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
+    await send_img_text_sticker(message, None, "Ладно, ладно. Что ты так завёлся", "evil", filters_markup)
 
 
 # Обрабатываем задачу параметров для gamma_filter
@@ -472,7 +468,7 @@ async def params(message: types.Message):
 @dp.message_handler(lambda message: message.text == "Перестань", state=FilterBotStates.Filters.pixel_working)
 async def reset(message: types.Message):
     await FilterBotStates.ImageDownload.download_done.set()
-    await send_img_text_sticker(message, None, "Ладно, ладно", "evil", filters_markup)
+    await send_img_text_sticker(message, None, "Ладно, ладно. Что ты так завёлся", "evil", filters_markup)
 
 
 # Обрабатываем задачу параметров для pixel_filter
@@ -481,9 +477,7 @@ async def filter_pixel(message: types.Message):
     try:
         parametrs = filters.cut_param(message.text)
     except:
-        await send_img_text_sticker(message, None,
-                                    "Для кого я кнопки отправляла?", "kus",
-                                    pixel_markup)
+        await send_img_text_sticker(message, None, "Для кого я кнопки отправляла?", "kus", pixel_markup)
     src_img_path = create_save_path(message, "source")
     img_path = create_save_path(message, "pixel")
     try:
@@ -544,9 +538,9 @@ async def echo_document(message: types.Message):
 async def echo_message(message):
     await FilterBotStates.StartManagment.ice_cream_not_done.set()
     await send_img_text_sticker(message, None,
-                                f"Я не знаю что ответить 😢\n"
-                                f"Доступные команды: \n/start - полная перезагрузка \n"
-                                f"/help - информация о достурных фильтрах", "noanswer", start_markup)
+                                "Я не знаю что ответить 😢\n" + \
+                                "Доступные команды: \n/start - полная перезагрузка \n" + \
+                                "/help - информация о достурных фильтрах", "noanswer", start_markup)
 
 
 if __name__ == "__main__":

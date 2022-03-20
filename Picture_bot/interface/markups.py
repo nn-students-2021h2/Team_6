@@ -21,7 +21,7 @@ colors_markup.add(button_green, button_red, button_yellow, button_orange, button
 
 # morph_markup
 morph_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-morph_markup.add(button_mosaic, button_border, button_morphling)
+morph_markup.add(button_open, button_grad, button_blackhat)
 
 # morph_set_prof_markup
 morph_set_prof_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)

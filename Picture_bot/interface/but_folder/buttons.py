@@ -3,7 +3,9 @@ from aiogram import types
 
 # KeyboardButton
 # for start menu
-start_buttons = ["🍧 Хочу мороженку", "🎨 Мне нужно обработать изображение"]
+icecream_button = "🍧 Хочу мороженку"
+image_button = "🎨 Мне нужно обработать изображение"
+help_button = "🕵‍♂️Что ты умеешь?"
 
 # filters list
 button_sourse = types.KeyboardButton("Исходник")

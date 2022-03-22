@@ -28,11 +28,6 @@ morph_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 morph_markup.add(button_open, button_grad, button_blackhat)
 
 # morph_set_prof_markup
-morph_set_prof_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-morph_set_prof_markup.add(button_morph_set_prof)
-morph_set_prof_markup.row(button_enough)
-
-# pixels filter amount of cut
-pixel_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-pixel_markup.add(button_2, button_4, button_8, button_16, button_32)
-pixel_markup.row(button_enough)
+set_prof_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+set_prof_markup.add(button_set_prof)
+set_prof_markup.row(button_enough)

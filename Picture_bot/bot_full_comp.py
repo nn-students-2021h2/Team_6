@@ -269,7 +269,7 @@ async def morph_settings_choosing(message: types.Message):
                                     "С каким ядром и сколько раз ты хочешь применить эту морфологию?\n" + \
                                     "'Нечетное число + любое число: от единицы до ста', например, вот так: 7 8\n" + \
                                     "Ну или доверься профессионалу и нажми на кнопку 'поработай'", "mayi",
-                                    morph_set_prof_markup)
+                                    set_prof_markup)
     else:
         await send_img_text_sticker(message, None, "Я такого не знаю, повтори-ка",
                                     "kus", morph_markup)
@@ -286,7 +286,7 @@ async def morph_processing(message: types.Message, state: FSMContext):
         except:
             await send_img_text_sticker(message, None,
                                         "Ты неправильно меня понял, попробуй ещё раз", "kus",
-                                        morph_set_prof_markup)
+                                        set_prof_markup)
         else:
             try:
                 src_img_path = create_save_path(message, "source")
@@ -311,7 +311,7 @@ async def morph_processing(message: types.Message, state: FSMContext):
         except:
             await send_img_text_sticker(message, None,
                                         "Ты неправильно меня понял, попробуй ещё раз", "kus",
-                                        morph_set_prof_markup)
+                                        set_prof_markup)
         else:
             try:
                 src_img_path = create_save_path(message, "source")
@@ -336,7 +336,7 @@ async def morph_processing(message: types.Message, state: FSMContext):
         except:
             await send_img_text_sticker(message, None,
                                         "Ты неправильно меня понял, попробуй ещё раз", "kus",
-                                        morph_set_prof_markup)
+                                        set_prof_markup)
         else:
             try:
                 src_img_path = create_save_path(message, "source")
@@ -439,7 +439,7 @@ async def Gamma_Function(message, state: FSMContext):
     current_state = await state.get_state()
     current_state = str(current_state)
     try:
-        gamma_value = filters.Gamma_Num((message.text + ' ')[: message.text.find(' ')])
+        gamma_value = filters.Num((message.text + ' ')[: message.text.find(' ')])
         if gamma_value == 0.0:
             raise Zero_Error
     except Exception as e:
@@ -478,29 +478,61 @@ async def Gamma_Function(message, state: FSMContext):
 
 
 # Обрабатываем запрос "Средний сдвиг"
-@dp.message_handler(lambda message: message.text == "Средний сдвиг",
-                    state=FilterBotStates.ImageDownload.download_done)
+@dp.message_handler(lambda message: message.text == "Средний сдвиг", state=FilterBotStates.ImageDownload.download_done)
+async def filter_gamma(message: types.Message):
+    await FilterBotStates.Filters.meanshift_working.set()
+    await send_img_text_sticker(message, None, "Сколько раз хочешь хочешь, мм? Только чур не больше пяти",
+                                "giveme", set_prof_markup)
+
+
+# Останавливаем принятие запросов значений параметров для работы фильтров mean_shift
+@dp.message_handler(lambda message: message.text == "Перестань", state=FilterBotStates.Filters.meanshift_working)
+async def reset(message: types.Message):
+    await FilterBotStates.ImageDownload.download_done.set()
+    await send_img_text_sticker(message, None, "Ладно, ладно. Что ты так завёлся", "evil", filters_markup)
+
+
+# Обрабатываем запрос "Средний сдвиг"
+@dp.message_handler(state=FilterBotStates.Filters.meanshift_working)
 async def filter_meanshift(message: types.Message):
-    if not os.path.exists(create_save_path(message, "mean_shift")):
+    try:
+        parametr = 0
+        if message.text == "Поработай":
+            parametr = 1
+        else:
+            parametr = int(message.text)
+            if parametr == 0:
+                raise Zero_Error
+            if parametr > 5:
+                raise Big_Error
+            if parametr < 0:
+                raise Minus_Error
+    except Exception as e:
+        if str(type(e)) == "<class 'exceptions.Zero_Error'>":
+            await send_img_text_sticker(message, None, "Ага, ноль, хорошо ты придумал..", "he", set_prof_markup)
+        elif str(type(e)) == "<class 'exceptions.Big_Error'>":
+            await send_img_text_sticker(message, None, "Ого, какое больше число, а можно поменьше?", "kus",
+                                        set_prof_markup)
+        elif str(type(e)) == "<class 'exceptions.Minus_Error'>":
+            await send_img_text_sticker(message, None, "Может ты еще и бесконечный двигатель изобретешь?", "kus",
+                                        set_prof_markup)
+        else:
+            await send_img_text_sticker(message, None, "Я вроде число просила", "kus", set_prof_markup)
+    else:
         src_img_path = create_save_path(message, "source")
         img_path = create_save_path(message, "mean_shift")
         try:
             img = imread(src_img_path)
             if img is None:
                 raise ImreadError
-            img_res = filters.Mean_Shift_Filter(img)
+            img_res = filters.Mean_Shift_Filter(img, parametr)
             if not imwrite(img_path, img_res):
                 raise ImwriteError
-            await send_img_text_sticker(message, img_path, "Ах, как же я хорошо поработала", "wow", None)
+            await send_img_text_sticker(message, img_path, "Ах, как же я хорошо поработала", "wow", set_prof_markup)
         except ImreadError:
             await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
         except ImwriteError:
             await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
-    else:
-        img_path = create_save_path(message, "mean_shift")
-        await send_img_text_sticker(message, img_path,
-                                    "Ты уже использовал этот фильтр, имей совесть! Я тут не без дела сижу ...",
-                                    "tired")
 
 
 # Обрабатываем сообщение "Пикселизация"
@@ -508,7 +540,8 @@ async def filter_meanshift(message: types.Message):
                     state=FilterBotStates.ImageDownload.download_done)
 async def params(message: types.Message):
     await FilterBotStates.Filters.pixel_working.set()
-    await send_img_text_sticker(message, None, "Подрегулируй уровень пикселизации", "mayi", pixel_markup)
+    await send_img_text_sticker(message, None, "Подрегулируй уровень пикселизации, введи число, нуу скажем, до 32",
+                                "mayi", set_prof_markup)
 
 
 # Останавливаем принятие запросов значений параметров для работы фильтров pixel
@@ -522,23 +555,43 @@ async def reset(message: types.Message):
 @dp.message_handler(state=FilterBotStates.Filters.pixel_working)
 async def filter_pixel(message: types.Message):
     try:
-        parametrs = filters.cut_param(message.text)
-    except:
-        await send_img_text_sticker(message, None, "Для кого я кнопки отправляла?", "kus", pixel_markup)
-    src_img_path = create_save_path(message, "source")
-    img_path = create_save_path(message, "pixel")
-    try:
-        img = imread(src_img_path)
-        if img is None:
-            raise ImreadError
-        img_res = filters.Pixel_Filter(img, parametrs)
-        if not imwrite(img_path, img_res):
-            raise ImwriteError
-        await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
-    except ImreadError:
-        await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
-    except ImwriteError:
-        await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
+        parametr = 0
+        if message.text == "Поработай":
+            parametr = 2
+        else:
+            parametr = int(message.text)
+            if parametr == 0:
+                raise Zero_Error
+            if parametr > 31:
+                raise Big_Error
+            if parametr < 0:
+                raise Minus_Error
+    except Exception as e:
+        if str(type(e)) == "<class 'exceptions.Zero_Error'>":
+            await send_img_text_sticker(message, None, "Ага, ноль, хорошо ты придумал..", "he", set_prof_markup)
+        elif str(type(e)) == "<class 'exceptions.Big_Error'>":
+            await send_img_text_sticker(message, None, "Ого, какое больше число, а можно поменьше?", "kus",
+                                        set_prof_markup)
+        elif str(type(e)) == "<class 'exceptions.Minus_Error'>":
+            await send_img_text_sticker(message, None, "Может ты еще и бесконечный двигатель изобретешь?", "kus",
+                                        set_prof_markup)
+        else:
+            await send_img_text_sticker(message, None, "Я вроде число просила", "kus", set_prof_markup)
+    else:
+        src_img_path = create_save_path(message, "source")
+        img_path = create_save_path(message, "pixel")
+        try:
+            img = imread(src_img_path)
+            if img is None:
+                raise ImreadError
+            img_res = filters.Pixel_Filter(img, parametr)
+            if not imwrite(img_path, img_res):
+                raise ImwriteError
+            await send_img_text_sticker(message, img_path, "Ммм, какая красивая фоточка", "looksgood", None)
+        except ImreadError:
+            await send_img_text_sticker(message, None, "Файл не читается", "cry", filters_markup)
+        except ImwriteError:
+            await send_img_text_sticker(message, None, "Файл не записывается", "cry", filters_markup)
 
 
 # Обрабатываем сообщение "Выделить границы"

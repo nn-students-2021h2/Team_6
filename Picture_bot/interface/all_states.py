@@ -12,6 +12,7 @@ class ImageDownload(StatesGroup):
 
 
 class Filters(StatesGroup):
+    meanshift_working = State()
     color_range_working = State()
     morph_choosing_working = State()
     pixel_working = State()

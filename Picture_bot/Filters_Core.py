@@ -20,8 +20,11 @@ def Gray_Filter(img):
     return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 
-def Mean_Shift_Filter(img):
-    return cv2.pyrMeanShiftFiltering(img, 15, 50, None, 1)
+def Mean_Shift_Filter(img, parametr):
+    img_res = img
+    for i in range(parametr):
+        img_res = cv2.pyrMeanShiftFiltering(img_res, 15, 50, None, 1)
+    return img_res
 
 
 def Color_Range_Filter(img, color: str):
@@ -35,7 +38,7 @@ def Color_Range_Filter(img, color: str):
     return img_res
 
 
-def Gamma_Num(num):
+def Num(num):
     return float(num)
 
 
@@ -142,7 +145,7 @@ def Cartoon_Filter(img, batch_size=4):
 if __name__ == '__main__':
     img = cv2.imread('C:/PNGLIVE/test4.jpg')
     cv2.imshow('image1', img)
-    cv2.imshow('image2', Border_Filter(img, 7, 2))
+    cv2.imshow('image2', Pixel_Filter(img, 31))
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
